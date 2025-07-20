@@ -1,0 +1,17 @@
+[build-system]
+requires = ["hatchling >= 1.26"]
+build-backend = "hatchling.build"
+
+[project]
+name = "compta-pkg"
+version = "0.1.0"
+description = "Load Excel files into a SQLite database"
+authors = [{ name = "nicholas" , email = "nicholasvachon@hotmail.com"}]
+requires-python = ">=3.10"
+dependencies = [
+    "pandas>=2.3.1",
+    "openpyxl>=3.1.5",
+]
+
+[tool.hatch.build.targets.wheel]
+    packages = ["src/compta_pkg"]
