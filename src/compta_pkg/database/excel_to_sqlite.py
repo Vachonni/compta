@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from compta_pkg.config.paths import DataPath
+from compta_pkg.database.config.settings import database_settings
 
 
 def excel_to_sqlite(excel_path: Path, sqlite_path: Path, table_name: str) -> None:
@@ -29,4 +29,8 @@ def excel_to_sqlite(excel_path: Path, sqlite_path: Path, table_name: str) -> Non
 
 if __name__ == "__main__":
     # table_name argument is ignored when loading all sheets
-    excel_to_sqlite(DataPath.excel_path, DataPath.sqlite_dev_path, DataPath.table_name)
+    excel_to_sqlite(
+        database_settings.EXCEL_PATH,
+        database_settings.SQLITE_DEV_PATH,
+        database_settings.TABLE_NAME,
+    )

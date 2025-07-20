@@ -11,6 +11,8 @@ requires-python = ">=3.10"
 dependencies = [
     "pandas>=2.3.1",
     "openpyxl>=3.1.5",
+    "pydantic>=2.11.7",
+    "pydantic-settings>=2.10.1",
 ]
 
 [tool.hatch.build.targets.wheel]

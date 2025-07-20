@@ -13,5 +13,8 @@ db.sqlite3-journal
 # VS Code settings
 .vscode/
 
+# Environment variables
+.env
+
 # macOS system files
 .DS_Store
