@@ -23,6 +23,35 @@ source venv/bin/activate
 uv sync
 ```
 
+## Running the FastAPI App
+
+To start the FastAPI server and make it accessible from other devices on your local network, run the following command from the project root:
+
+```bash
+uvicorn compta_pkg.database.app:app --host 0.0.0.0 --port 8000 --reload
+```
+
+This will launch the API at `http://0.0.0.0:8000` on your machine. To access it from another device on the same WiFi network, use your computer's local IP address (e.g., `http://192.168.x.x:8000`).
+
+### Find your local IP address
+
+To find your computer's local IP address on macOS or Linux, run:
+
+```bash
+ipconfig getifaddr en0  # macOS (WiFi)
+# or
+hostname -I             # Linux
+```
+
+### Example: Fetch first two lines with curl
+
+Assuming your API is running and you have a table called `transaction`, you can get the first two rows with:
+
+```bash
+curl -X POST http://192.168.0.109:8000/execute_sql \
+  -H "Content-Type: application/json" \
+  -d '{"query": "SELECT * FROM transactions LIMIT 2;"}'
+```
 
 ## Usage
 
