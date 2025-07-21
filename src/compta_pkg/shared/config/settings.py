@@ -10,9 +10,7 @@ class SharedSettings(BaseSettings):
 
     ENVIRONMENT: str
 
-    class Config:
-        env_file: str = ".env"
-        env_file_encoding: str = "utf-8"
+    model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 
 shared_settings = SharedSettings()  # type: ignore

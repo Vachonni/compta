@@ -1,4 +1,5 @@
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from compta_pkg.database.utils import get_db_connection
@@ -11,9 +12,8 @@ class SQLQuery(BaseModel):
 
 
 @app.post("/execute_sql")
-async def execute_sql(sql_query: SQLQuery):
+async def execute_sql(sql_query: SQLQuery, conn=Depends(get_db_connection)):
     try:
-        conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(sql_query.query)
         if sql_query.query.strip().lower().startswith("select"):
@@ -29,7 +29,9 @@ async def execute_sql(sql_query: SQLQuery):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-if __name__ == "__main__":
-    import uvicorn
-
-    uvicorn.run("compta_pkg.database.app:app", host="0.0.0.0", port=8000, reload=True)
+@app.middleware("http")
+async def catch_dependency_errors(request, call_next):
+    try:
+        return await call_next(request)
+    except Exception as e:
+        return JSONResponse(status_code=400, content={"detail": str(e)})
