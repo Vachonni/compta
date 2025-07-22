@@ -36,6 +36,9 @@ jobs:
         run: |
           cd database
           uv run pytest
+        env:
+          ENVIRONMENT: ${{ vars.ENVIRONMENT }}
+          DATABASES_DIR: ${{ vars.DATABASES_DIR }}
 
       - name: Log in to GitHub Container Registry
         run: |
