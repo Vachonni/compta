@@ -1,0 +1,48 @@
+# GitHub Actions CI/CD workflow for main branch
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install uv
+        run: |
+          curl -Ls https://astral.sh/uv/install.sh | bash
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Sync dependencies with uv
+        run: |
+          uv sync
+
+      - name: Run tests
+        run: |
+          uv run pytest
+
+      - name: Log in to GitHub Container Registry
+        run: |
+          echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            --build-arg DATABASES_DIR=${{ vars.DATABASES_DIR }} \
+            --build-arg ENVIRONMENT=${{ vars.ENVIRONMENT }} \
+            -t ghcr.io/${{ github.repository_owner }}/compta-data-app:latest .
+
+      - name: Push Docker image to GitHub Container Registry
+        run: |
+          docker push ghcr.io/${{ github.repository_owner }}/compta-data-app:latest
