@@ -23,10 +23,6 @@ COPY src/database_pkg ./database_pkg
 RUN useradd -m appuser
 USER appuser
 
-# Set DATABASES_DIR environment variable to a mount point
-ENV DATABASES_DIR=/app/DatabasesMount
-ENV ENVIRONMENT=staging
-
 # Expose port (adjust if your app uses a different port)
 EXPOSE 8000
 
