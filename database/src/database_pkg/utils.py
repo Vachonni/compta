@@ -1,6 +1,6 @@
 import sqlite3
 
-from compta_pkg.database.config.settings import database_settings
+from database_pkg.config.settings import database_settings
 
 
 def get_db_connection():

@@ -2,7 +2,7 @@ from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from compta_pkg.database.utils import get_db_connection
+from database_pkg.utils import get_db_connection
 
 app = FastAPI()
 

@@ -18,8 +18,6 @@ More info at:
 To create a virtual environment and install all dependencies:
 
 ```sh
-uv venv
-source venv/bin/activate
 uv sync
 ```
 
@@ -28,7 +26,7 @@ uv sync
 To start the FastAPI server and make it accessible from other devices on your local network, run the following command from the project root:
 
 ```bash
-uv run uvicorn compta_pkg.database.app:app --host 0.0.0.0 --port 8000 --reload
+uv run uvicorn database_pkg.app:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 This will launch the API at `http://0.0.0.0:8000` on your machine. To access it from another device on the same WiFi network, use your computer's local IP address (e.g., `http://192.168.x.x:8000`).

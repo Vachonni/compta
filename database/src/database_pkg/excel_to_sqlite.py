@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from compta_pkg.database.config.settings import database_settings
+from database_pkg.config.settings import database_settings
 
 
 def excel_to_sqlite(excel_path: Path, sqlite_path: Path, table_name: str) -> None:

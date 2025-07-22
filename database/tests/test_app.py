@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 
-from compta_pkg.database.app import app
-from compta_pkg.database.utils import get_db_connection
+from database_pkg.app import app
+from database_pkg.utils import get_db_connection
 
 
 def test_execute_sql_select():
@@ -32,7 +32,7 @@ def test_execute_sql_select():
     def dummy_get_db_connection():
         return DummyConn()
 
-    from compta_pkg.database import app as db_app
+    from database_pkg import app as db_app
 
     db_app.app.dependency_overrides = {}
     db_app.app.dependency_overrides[get_db_connection] = dummy_get_db_connection
@@ -71,7 +71,7 @@ def test_execute_sql_non_select():
     def dummy_get_db_connection():
         return DummyConn()
 
-    from compta_pkg.database import app as db_app
+    from database_pkg import app as db_app
 
     db_app.app.dependency_overrides = {}
     db_app.app.dependency_overrides[get_db_connection] = dummy_get_db_connection
@@ -87,7 +87,7 @@ def test_execute_sql_error():
     def dummy_get_db_connection():
         raise Exception("DB error")
 
-    from compta_pkg.database import app as db_app
+    from database_pkg import app as db_app
 
     db_app.app.dependency_overrides = {}
     db_app.app.dependency_overrides[get_db_connection] = dummy_get_db_connection
