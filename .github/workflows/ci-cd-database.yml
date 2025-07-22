@@ -29,10 +29,12 @@ jobs:
 
       - name: Sync dependencies with uv
         run: |
+          cd database
           uv sync
 
       - name: Run tests
         run: |
+          cd database
           uv run pytest
 
       - name: Log in to GitHub Container Registry
