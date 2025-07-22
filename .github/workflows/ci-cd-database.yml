@@ -49,8 +49,8 @@ jobs:
           docker build \
             --build-arg DATABASES_DIR=${{ vars.DATABASES_DIR }} \
             --build-arg ENVIRONMENT=${{ vars.ENVIRONMENT }} \
-            -t ghcr.io/${{ github.repository_owner }}/compta-data-app:latest database
+            -t ghcr.io/${{ github.repository_owner | toLowerCase() }}/compta-data-app:latest database
 
       - name: Push Docker image to GitHub Container Registry
         run: |
-          docker push ghcr.io/${{ github.repository_owner }}/compta-data-app:latest
+          docker push ghcr.io/${{ github.repository_owner | toLowerCase() }}/compta-data-app:latest
