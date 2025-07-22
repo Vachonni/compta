@@ -47,10 +47,21 @@ hostname -I             # Linux
 Assuming your API is running and you have a table called `transaction`, you can get the first two rows with:
 
 ```bash
-curl -X POST http://192.168.0.109:8000/execute_sql \
+curl -X POST http://192.168.0.36:8000/execute_sql \
   -H "Content-Type: application/json" \
   -d '{"query": "SELECT * FROM transactions LIMIT 2;"}'
 ```
+
+## Port Number Convention by Environment
+
+For clarity and to avoid conflicts, this project uses a port pattern based on the environment:
+
+- **Local:** Port ending with `0`(e.g., `8000`)
+- **Development:** Ports ending with `1` (e.g., `8001`)
+- **Staging:** Ports ending with `5` (e.g., `8005`)
+- **Production:** Ports ending with `9` (e.g., `8009`)
+
+This convention helps quickly identify which environment is running based on the port number. 
 
 ## Running Tests
 
