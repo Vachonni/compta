@@ -14,7 +14,8 @@ db.sqlite3-journal
 .vscode/
 
 # Environment variables
-.env
+.env*
 
 # macOS system files
 .DS_Store
+.env.shared
