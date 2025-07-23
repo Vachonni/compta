@@ -16,11 +16,15 @@ COPY pyproject.toml uv.lock ./
 # Install dependencies first (before copying source code)
 RUN uv sync
 
+
 # Copy source code after dependencies for better caching
 COPY src/database_pkg ./database_pkg
 
-# Create a non-root user and switch to it
-RUN useradd -m appuser
+# Create a non-root user
+RUN useradd -m appuser \
+    && chown -R appuser:appuser /app
+
+# Switch to non-root user
 USER appuser
 
 # Expose port (adjust if your app uses a different port)
