@@ -1,5 +1,7 @@
 """Database service settings."""
 
+import logging
+import logging.config
 import os
 from enum import Enum
 from pathlib import Path
@@ -19,8 +21,10 @@ class AppEnvEnum(str, Enum):
 class DatabaseSettings(BaseSettings):
     """Settings for the database service."""
 
+    SERVICE_NAME: str = "database"
     app_env: AppEnvEnum
     databases_dir: str
+    log_level: str
 
     model_config = {
         "env_file": env_file,
@@ -45,6 +49,44 @@ class DatabaseSettings(BaseSettings):
 
 
 database_settings = DatabaseSettings()  # type: ignore
+
+
+def setup_logging() -> None:
+    """
+    Set up logging configuration.
+    Log level and output can be controlled via environment variables
+    LOG_LEVEL and LOG_FILE.
+    """
+    # Format: timestamp level [service] logger: message (no milliseconds)
+    fmt = f"%(asctime)s %(levelname)s [{database_settings.SERVICE_NAME}] %(name)s: %(message)s"
+    # Remove milliseconds from asctime by setting datefmt
+    datefmt = "%Y-%m-%d %H:%M:%S"
+
+    handlers = ["console"]
+    handler_dict = {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "default",
+            "level": database_settings.log_level,
+        }
+    }
+
+    logging_config = {
+        "version": 1,
+        "disable_existing_loggers": False,
+        "formatters": {
+            "default": {
+                "format": fmt,
+                "datefmt": datefmt,
+            },
+        },
+        "handlers": handler_dict,
+        "root": {
+            "handlers": handlers,
+            "level": database_settings.log_level,
+        },
+    }
+    logging.config.dictConfig(logging_config)
 
 
 if __name__ == "__main__":
