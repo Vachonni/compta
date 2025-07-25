@@ -14,6 +14,7 @@ env_file: str = f".env.{os.getenv('APP_ENV', 'dev')}"
 # Enum for allowed APP_ENV values
 class AppEnvEnum(str, Enum):
     DEV = "dev"
+    LOCAL = "local"
     PROD = "prod"
     STAGING = "staging"
 
@@ -41,7 +42,11 @@ class DatabaseSettings(BaseSettings):
 
     @property
     def sqlite_dev_path(self) -> Path:
-        return self.db_path / "SQL" / f"{self.app_env.value}.db"
+        if self.app_env == AppEnvEnum.PROD:
+            return self.db_path / "SQL" / "prod.db"
+        else:
+            # For dev, local, and staging environments, use the dev database
+            return self.db_path / "SQL" / "dev.db"
 
     @property
     def table_name(self) -> str:
@@ -71,7 +76,7 @@ def setup_logging() -> None:
         }
     }
 
-    logging_config = {
+    logging_config: dict[str, object] = {
         "version": 1,
         "disable_existing_loggers": False,
         "formatters": {

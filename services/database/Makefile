@@ -25,9 +25,10 @@ pytest:
 	uv run pytest
 
 docker-build-dev: 
-	docker-compose --env-file .env.dev up build
+	docker-compose --env-file .env.dev build compa-data-app
 docker-run-dev: 
-	docker-compose --env-file .env.dev up
+	docker-compose --env-file .env.dev up --no-build compa-data-app
+	# Note: This will not rebuild the image, use `docker-build-dev` first if
 docker-up-dev: 
 	docker-compose --env-file .env.dev up --build
 
