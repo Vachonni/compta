@@ -34,7 +34,7 @@ jobs:
 
       - name: Sync dependencies with uv
         run: |
-          cd database
+          cd services/database
           uv sync
 
       - name: Run tests
