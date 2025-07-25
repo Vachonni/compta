@@ -8,7 +8,7 @@ from pathlib import Path
 
 from pydantic_settings import BaseSettings
 
-env_file: str = f".env.{os.getenv('APP_ENV', 'dev')}"
+env_file: str = f".env.{os.getenv('APP_ENV', 'local')}"
 
 
 # Enum for allowed APP_ENV values
