@@ -22,15 +22,33 @@ class AppEnvEnum(str, Enum):
 class DatabaseSettings(BaseSettings):
     """Settings for the database service."""
 
+    # Fixed fields
     SERVICE_NAME: str = "database"
+    DATABASES_DIR_LOCAL: str = "/Users/nicholas/Databases"
+    DATABASES_DIR_DOCKER: str = "/app/DatabasesMount"
+    # Fields loaded from environment variables
     app_env: AppEnvEnum
-    databases_dir: str
-    log_level: str
 
     model_config = {
         "env_file": env_file,
         "env_file_encoding": "utf-8",
     }
+
+    @property
+    def databases_dir(self) -> str:
+        """Return the databases directory based on the environment."""
+        if self.app_env == AppEnvEnum.LOCAL:
+            return self.DATABASES_DIR_LOCAL
+        else:
+            return self.DATABASES_DIR_DOCKER
+
+    @property
+    def log_level(self) -> str:
+        """Return the log level depending on the environment."""
+        if self.app_env == AppEnvEnum.PROD:
+            return "INFO"
+        else:
+            return "DEBUG"
 
     @property
     def db_path(self) -> Path:
