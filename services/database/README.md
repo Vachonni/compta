@@ -44,10 +44,10 @@ hostname -I             # Linux
 
 ### Example: Fetch first two lines with curl
 
-Assuming your API is running and you have a table called `transaction`, you can get the first two rows with:
+Assuming your API is running and you have a table called `transactions`, you can get the first two rows with:
 
 ```bash
-curl -X POST http://192.168.0.36:8000/execute_sql \
+curl -X POST http://<COMPUTER_IP OR COMPUTER_NAME.local>:8000/execute_sql \
   -H "Content-Type: application/json" \
   -d '{"query": "SELECT * FROM transactions LIMIT 2;"}'
 ```

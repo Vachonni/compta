@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from database_pkg.config.settings import database_settings
+from database_pkg.config import database_settings
 
 
 def excel_to_sqlite(excel_path: Path, sqlite_path: Path, table_name: str) -> None:
@@ -30,7 +30,7 @@ def excel_to_sqlite(excel_path: Path, sqlite_path: Path, table_name: str) -> Non
 if __name__ == "__main__":
     # table_name argument is ignored when loading all sheets
     excel_to_sqlite(
-        database_settings.EXCEL_PATH,
-        database_settings.SQLITE_DEV_PATH,
-        database_settings.TABLE_NAME,
+        database_settings.excel_path,
+        database_settings.sqlite_dev_path,
+        database_settings.table_name,
     )

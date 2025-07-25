@@ -16,7 +16,6 @@ COPY pyproject.toml uv.lock ./
 # Install dependencies first (before copying source code)
 RUN uv sync
 
-
 # Copy source code after dependencies for better caching
 COPY src/database_pkg ./database_pkg
 

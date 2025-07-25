@@ -7,7 +7,7 @@ on:
     branches:
       - main
     paths:
-      - 'database/**'
+      - 'services/database/**'
       - '.github/workflows/ci-cd-database.yml'
 
 jobs:
@@ -39,11 +39,10 @@ jobs:
 
       - name: Run tests
         run: |
-          cd database
+          cd services/database
           uv run pytest
         env:
-          ENVIRONMENT: ${{ vars.ENVIRONMENT }}
-          DATABASES_DIR: ${{ vars.DATABASES_DIR }}
+          APP_ENV: ${{ vars.APP_ENV }}
 
       - name: Log in to GitHub Container Registry
         run: |
@@ -52,10 +51,9 @@ jobs:
       - name: Build Docker image
         run: |
           docker build \
-            --build-arg DATABASES_DIR=${{ vars.DATABASES_DIR }} \
-            --build-arg ENVIRONMENT=${{ vars.ENVIRONMENT }} \
-            -t ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:latest database
+            --build-arg APP_ENV=${{ vars.APP_ENV }} \
+            -t ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:staging services/database
 
       - name: Push Docker image to GitHub Container Registry
         run: |
-          docker push ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:latest
+          docker push ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:staging

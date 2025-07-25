@@ -32,11 +32,9 @@ def test_execute_sql_select():
     def dummy_get_db_connection():
         return DummyConn()
 
-    from database_pkg import app as db_app
-
-    db_app.app.dependency_overrides = {}
-    db_app.app.dependency_overrides[get_db_connection] = dummy_get_db_connection
-    test_client = TestClient(db_app.app)
+    app.dependency_overrides = {}
+    app.dependency_overrides[get_db_connection] = dummy_get_db_connection
+    test_client = TestClient(app)
     response = test_client.post("/execute_sql", json={"query": "SELECT * FROM test"})
     assert response.status_code == 200
     assert "result" in response.json()
@@ -71,11 +69,9 @@ def test_execute_sql_non_select():
     def dummy_get_db_connection():
         return DummyConn()
 
-    from database_pkg import app as db_app
-
-    db_app.app.dependency_overrides = {}
-    db_app.app.dependency_overrides[get_db_connection] = dummy_get_db_connection
-    test_client = TestClient(db_app.app)
+    app.dependency_overrides = {}
+    app.dependency_overrides[get_db_connection] = dummy_get_db_connection
+    test_client = TestClient(app)
     response = test_client.post(
         "/execute_sql", json={"query": "UPDATE test SET value='baz' WHERE id=1"}
     )
@@ -87,11 +83,9 @@ def test_execute_sql_error():
     def dummy_get_db_connection():
         raise Exception("DB error")
 
-    from database_pkg import app as db_app
-
-    db_app.app.dependency_overrides = {}
-    db_app.app.dependency_overrides[get_db_connection] = dummy_get_db_connection
-    test_client = TestClient(db_app.app)
+    app.dependency_overrides = {}
+    app.dependency_overrides[get_db_connection] = dummy_get_db_connection
+    test_client = TestClient(app)
     response = test_client.post("/execute_sql", json={"query": "SELECT * FROM test"})
     assert response.status_code == 400
     assert "DB error" in response.json()["detail"]

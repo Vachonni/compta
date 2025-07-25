@@ -7,7 +7,7 @@ name = "database-pkg"
 version = "0.1.0"
 description = "Load Excel files into a SQLite database"
 authors = [{ name = "nicholas" , email = "nicholasvachon@hotmail.com"}]
-requires-python = ">=3.10"
+requires-python = ">=3.13"
 dependencies = [
     "pandas>=2.3.1",
     "openpyxl>=3.1.5",
