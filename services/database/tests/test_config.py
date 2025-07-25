@@ -14,8 +14,8 @@ import database_pkg.config as config_mod
 from database_pkg.config import AppEnvEnum
 
 
-def test_env_defaults_to_dev(monkeypatch: MonkeyPatch) -> None:
-    """Should default to DEV environment if APP_ENV is not set."""
+def test_env_defaults_to_local(monkeypatch: MonkeyPatch) -> None:
+    """Should default to LOCAL environment if APP_ENV is not set."""
     monkeypatch.delenv("APP_ENV", raising=False)
     reload(config_mod)
     settings = config_mod.database_settings
