@@ -3,10 +3,10 @@
 import os
 from enum import Enum
 from pathlib import Path
+
 from pydantic_settings import BaseSettings
 
-
-ENV_FILE = f".env.{os.getenv('APP_ENV', 'dev')}"
+env_file: str = f".env.{os.getenv('APP_ENV', 'dev')}"
 
 
 # Enum for allowed APP_ENV values
@@ -23,7 +23,7 @@ class DatabaseSettings(BaseSettings):
     databases_dir: str
 
     model_config = {
-        "env_file": ENV_FILE,
+        "env_file": env_file,
         "env_file_encoding": "utf-8",
     }
 
