@@ -6,6 +6,7 @@ on:
   push:
     branches:
       - staging
+      - main
     paths:
       - 'services/database/**'
       - '.github/workflows/ci-cd-database.yml'
@@ -13,7 +14,17 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    environment: staging
+    strategy:
+      matrix:
+        include:
+          - env_name: staging
+            branch: staging
+            docker_tag: staging
+          - env_name: prod
+            branch: main
+            docker_tag: prod
+    if: github.ref == 'refs/heads/' + matrix.branch
+    environment: ${{ matrix.env_name }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -52,8 +63,8 @@ jobs:
         run: |
           docker build \
             --build-arg APP_ENV=${{ vars.APP_ENV }} \
-            -t ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:staging services/database
+            -t ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:${{ matrix.docker_tag }} services/database
 
       - name: Push Docker image to GitHub Container Registry
         run: |
-          docker push ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:staging
+          docker push ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:${{ matrix.docker_tag }}

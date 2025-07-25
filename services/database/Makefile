@@ -5,7 +5,8 @@
 
 
 # GitHub Container Registry path (without image name or tag)
-GITHUB_REGISTRY=ghcr.io/$(shell echo $$(git config --get remote.origin.url) | sed -E 's#.*/([^/]+)/compta.*#\1#' | tr '[:upper:]' '[:lower:]')
+# ** UPDATE THIS TO YOUR GITHUB USERNAME **
+GITHUB_REGISTRY=ghcr.io/vachonni
 
 .PHONY: helprun-app pytest docker-build-dev docker-run-dev docker-up-dev docker-run-staging
 
@@ -36,4 +37,6 @@ docker-run-staging:
 	docker pull $(GITHUB_REGISTRY)/compta-data-app:staging
 	docker run --env-file .env.staging -p 8005:8000 -v /Users/nicholas/Databases:/app/DatabasesMount $(GITHUB_REGISTRY)/compta-data-app:staging
 
-
+docker-run-prod: 
+	docker pull $(GITHUB_REGISTRY)/compta-data-app:prod
+	docker run --env-file .env.prod -p 8009:8000 -v /Users/nicholas/Databases:/app/DatabasesMount $(GITHUB_REGISTRY)/compta-data-app:prod
