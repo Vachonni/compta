@@ -5,7 +5,7 @@ name: Database CI/CD Pipeline
 on:
   push:
     branches:
-      - main
+      - staging
     paths:
       - 'services/database/**'
       - '.github/workflows/ci-cd-database.yml'
