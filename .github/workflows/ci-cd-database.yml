@@ -1,4 +1,3 @@
-
 # GitHub Actions CI/CD workflow for database service (main branch)
 name: Database CI/CD Pipeline
 
@@ -24,45 +23,21 @@ jobs:
         id: repo_owner
         run: echo "owner=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Python Build and Test
+        uses: ./.github/actions/python-build-test.yml
         with:
           python-version: '3.13'
+          app-env: ${{ vars.APP_ENV }}
 
-      - name: Install uv
-        run: |
-          curl -Ls https://astral.sh/uv/install.sh | bash
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-
-      - name: Sync dependencies with uv
-        run: |
-          cd services/database
-          uv sync
-
-      - name: Run tests
-        run: |
-          cd services/database
-          uv run pytest
-        env:
-          APP_ENV: ${{ vars.APP_ENV }}
-
-      - name: Log in to GitHub Container Registry
-        run: |
-          echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
-      - name: Build Docker image
-        run: |
-          COMMIT_HASH=${GITHUB_SHA::7}
-          docker build \
-            --build-arg APP_ENV=${{ vars.APP_ENV }} \
-            -t ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:staging \
-            -t ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:staging-$COMMIT_HASH services/database
-
-      - name: Push Docker image to GitHub Container Registry
-        run: |
-          COMMIT_HASH=${GITHUB_SHA::7}
-          docker push ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:staging
-          docker push ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:staging-$COMMIT_HASH
+      - name: Build and Push Docker image to GHCR (staging)
+        uses: ./.github/actions/build-to-ghcr.yml
+        with:
+          image: ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:staging
+          image_extra: ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:staging-${{ github.sha }}
+          build_context: services/database
+          build_args: --build-arg APP_ENV=${{ vars.APP_ENV }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_actor: ${{ github.actor }}
 
   deploy-staging-local:
     name: Deploy to Local Docker (Staging)
@@ -75,27 +50,16 @@ jobs:
         id: repo_owner
         run: echo "owner=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
-      - name: Log in to GitHub Container Registry
-        run: |
-          echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
-      - name: Pull Docker image
-        run: |
-          docker pull ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:staging
-
-      - name: Stop and remove existing container (if running)
-        run: |
-          docker stop compta-data-app-staging || true
-          docker rm compta-data-app-staging || true
-
-      - name: Run new container
-        run: |
-          docker run -d \
-            --name compta-data-app-staging \
-            --env APP_ENV=${{ vars.APP_ENV }} \
-            -p 8005:8000 \
-            -v /Users/nicholas/Databases:/app/DatabasesMount \
-            ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:staging
+      - name: Deploy Docker container (staging)
+        uses: ./.github/actions/deploy-docker-mbpnv.yml
+        with:
+          image: ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:staging
+          name: compta-data-app-staging
+          port: 8005:8000
+          env: APP_ENV=${{ vars.APP_ENV }}
+          volume: /Users/nicholas/Databases:/app/DatabasesMount
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_actor: ${{ github.actor }}
 
   test-staging-integration:
     name: Integration Test on Staging
@@ -123,42 +87,54 @@ jobs:
         id: repo_owner
         run: echo "owner=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Python Build and Test
+        uses: ./.github/actions/python-build-test.yml
         with:
           python-version: '3.13'
+          app-env: ${{ vars.APP_ENV }}
 
-      - name: Install uv
-        run: |
-          curl -Ls https://astral.sh/uv/install.sh | bash
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+      - name: Build and Push Docker image to GHCR (prod)
+        uses: ./.github/actions/build-to-ghcr.yml
+        with:
+          image: ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:prod
+          image_extra: ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:prod-${{ github.sha }}
+          build_context: services/database
+          build_args: --build-arg APP_ENV=${{ vars.APP_ENV }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_actor: ${{ github.actor }}
 
-      - name: Sync dependencies with uv
-        run: |
-          cd services/database
-          uv sync
+  deploy-prod-local:
+    name: Deploy to Local Docker (Prod)
+    needs: build-prod
+    runs-on: self-hosted
+    if: github.ref == 'refs/heads/main'
+    environment: prod
+    steps:
+      - name: Set lowercase repo owner
+        id: repo_owner
+        run: echo "owner=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
-      - name: Run tests
-        run: |
-          cd services/database
-          uv run pytest
-        env:
-          APP_ENV: ${{ vars.APP_ENV }}
+      - name: Deploy Docker container (prod)
+        uses: ./.github/actions/deploy-docker-mbpnv.yml
+        with:
+          image: ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:prod
+          name: compta-data-app-prod
+          port: 8009:8000
+          env: APP_ENV=${{ vars.APP_ENV }}
+          volume: /Users/nicholas/Databases:/app/DatabasesMount
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_actor: ${{ github.actor }}
+  
 
-      - name: Log in to GitHub Container Registry
-        run: |
-          echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+  test-prod-integration:
+    name: Integration Test on Prod
+    needs: deploy-prod-local
+    runs-on: self-hosted
+    if: github.ref == 'refs/heads/main'
+    environment: prod
+    steps:
+      - name: Wait for API to be ready
+        run: bash scripts/health-check.sh 8009
 
-      - name: Build Docker image
-        run: |
-          COMMIT_HASH=${GITHUB_SHA::7}
-          docker build \
-            --build-arg APP_ENV=${{ vars.APP_ENV }} \
-            -t ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:prod \
-            -t ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:prod-$COMMIT_HASH services/database
-
-      - name: Push Docker image to GitHub Container Registry
-        run: |
-          COMMIT_HASH=${GITHUB_SHA::7}
-          docker push ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:prod
-          docker push ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:prod-$COMMIT_HASH
+      - name: Test API endpoint with SQL query
+        run: bash scripts/test-sql.sh 8009 prod_db
