@@ -52,13 +52,17 @@ jobs:
 
       - name: Build Docker image
         run: |
+          COMMIT_HASH=${GITHUB_SHA::7}
           docker build \
             --build-arg APP_ENV=${{ vars.APP_ENV }} \
-            -t ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:staging services/database
+            -t ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:staging \
+            -t ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:staging-$COMMIT_HASH services/database
 
       - name: Push Docker image to GitHub Container Registry
         run: |
+          COMMIT_HASH=${GITHUB_SHA::7}
           docker push ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:staging
+          docker push ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:staging-$COMMIT_HASH
 
   deploy-staging-local:
     name: Deploy to Local Docker (Staging)
@@ -133,10 +137,14 @@ jobs:
 
       - name: Build Docker image
         run: |
+          COMMIT_HASH=${GITHUB_SHA::7}
           docker build \
             --build-arg APP_ENV=${{ vars.APP_ENV }} \
-            -t ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:prod services/database
+            -t ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:prod \
+            -t ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:prod-$COMMIT_HASH services/database
 
       - name: Push Docker image to GitHub Container Registry
         run: |
+          COMMIT_HASH=${GITHUB_SHA::7}
           docker push ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:prod
+          docker push ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:prod-$COMMIT_HASH
