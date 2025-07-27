@@ -1,0 +1,41 @@
+name: 'Build and Push Docker Image to GHCR'
+description: 'Builds a Docker image and pushes it to GitHub Container Registry (GHCR)'
+inputs:
+  image:
+    description: 'Docker image name (including tag)'
+    required: true
+  image_extra:
+    description: 'Optional extra tag for the image (e.g. commit hash)'
+    required: false
+  build_context:
+    description: 'Build context (directory)'
+    required: true
+  build_args:
+    description: 'Build arguments (e.g. APP_ENV=prod)'
+    required: false
+  github_token:
+    description: 'GitHub token for registry login'
+    required: true
+  github_actor:
+    description: 'GitHub actor for registry login'
+    required: true
+runs:
+  using: 'composite'
+  steps:
+    - name: Log in to GitHub Container Registry
+      shell: bash
+      run: |
+        echo "${{ inputs.github_token }}" | docker login ghcr.io -u "${{ inputs.github_actor }}" --password-stdin
+    - name: Build Docker image
+      shell: bash
+      run: |
+        if [ -n "${{ inputs.build_args }}" ]; then \
+          docker build ${{ inputs.build_args }} -t ${{ inputs.image }}${{ inputs.image_extra && format(' -t {0}', inputs.image_extra) || '' }} ${{ inputs.build_context }}; \
+        else \
+          docker build -t ${{ inputs.image }}${{ inputs.image_extra && format(' -t {0}', inputs.image_extra) || '' }} ${{ inputs.build_context }}; \
+        fi
+    - name: Push Docker image to GHCR
+      shell: bash
+      run: |
+        docker push ${{ inputs.image }}
+        if [ -n "${{ inputs.image_extra }}" ]; then docker push ${{ inputs.image_extra }}; fi
