@@ -1,4 +1,3 @@
-
 # GitHub Actions CI/CD workflow for database service (main branch)
 name: Database CI/CD Pipeline
 
@@ -11,11 +10,31 @@ on:
       - 'services/database/**'
       - '.github/workflows/ci-cd-database.yml'
 
+# Define the matrix configuration once using YAML anchors
+x-matrix-config: &matrix-config
+  matrix:
+    config:
+      - environment: staging
+        branch_ref: 'refs/heads/staging'
+        image_tag: staging
+        port: 8005
+        db_name: dev_db
+      - environment: prod
+        branch_ref: 'refs/heads/main'
+        image_tag: prod
+        port: 8009
+        db_name: prod_db
+
 jobs:
-  build-staging:
+  # Matrix-based build job that handles both staging and prod
+  build:
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/staging'
-    environment: staging
+    strategy: *matrix-config
+    # Only run the matrix job that matches the current branch
+    if: github.ref == matrix.config.branch_ref
+    environment: ${{ matrix.config.environment }}
+    # For prod builds, depend on staging tests completing successfully
+    needs: ${{ matrix.config.environment == 'prod' && 'test-staging' || '' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -24,164 +43,66 @@ jobs:
         id: repo_owner
         run: echo "owner=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Python Build and Test
+        uses: ./.github/actions/python-build-test.yml
         with:
           python-version: '3.13'
+          app-env: ${{ vars.APP_ENV }}
 
-      - name: Install uv
-        run: |
-          curl -Ls https://astral.sh/uv/install.sh | bash
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+      - name: Build and Push Docker image to GHCR
+        uses: ./.github/actions/build-to-ghcr.yml
+        with:
+          image: ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:${{ matrix.config.image_tag }}
+          image_extra: ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:${{ matrix.config.image_tag }}-${{ github.sha }}
+          build_context: services/database
+          build_args: --build-arg APP_ENV=${{ vars.APP_ENV }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_actor: ${{ github.actor }}
 
-      - name: Sync dependencies with uv
-        run: |
-          cd services/database
-          uv sync
-
-      - name: Run tests
-        run: |
-          cd services/database
-          uv run pytest
-        env:
-          APP_ENV: ${{ vars.APP_ENV }}
-
-      - name: Log in to GitHub Container Registry
-        run: |
-          echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
-      - name: Build Docker image
-        run: |
-          COMMIT_HASH=${GITHUB_SHA::7}
-          docker build \
-            --build-arg APP_ENV=${{ vars.APP_ENV }} \
-            -t ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:staging \
-            -t ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:staging-$COMMIT_HASH services/database
-
-      - name: Push Docker image to GitHub Container Registry
-        run: |
-          COMMIT_HASH=${GITHUB_SHA::7}
-          docker push ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:staging
-          docker push ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:staging-$COMMIT_HASH
-
-  deploy-staging-local:
-    name: Deploy to Local Docker (Staging)
-    needs: build-staging
+  # Matrix-based deploy job
+  deploy:
+    name: Deploy to Local Docker
+    needs: build
     runs-on: self-hosted
-    if: github.ref == 'refs/heads/staging'
-    environment: staging
+    strategy: *matrix-config
+    if: github.ref == matrix.config.branch_ref
+    environment: ${{ matrix.config.environment }}
     steps:
       - name: Set lowercase repo owner
         id: repo_owner
         run: echo "owner=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
-      - name: Log in to GitHub Container Registry
-        run: |
-          echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+      - name: Deploy Docker container
+        uses: ./.github/actions/deploy-docker-mbpnv.yml
+        with:
+          image: ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:${{ matrix.config.image_tag }}
+          name: compta-data-app-${{ matrix.config.environment }}
+          port: ${{ matrix.config.port }}:8000
+          env: APP_ENV=${{ vars.APP_ENV }}
+          volume: /Users/nicholas/Databases:/app/DatabasesMount
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_actor: ${{ github.actor }}
 
-      - name: Pull Docker image
-        run: |
-          docker pull ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:staging
-
-      - name: Stop and remove existing container (if running)
-        run: |
-          docker stop compta-data-app-staging || true
-          docker rm compta-data-app-staging || true
-
-      - name: Run new container
-        run: |
-          docker run -d \
-            --name compta-data-app-staging \
-            --env APP_ENV=${{ vars.APP_ENV }} \
-            -p 8005:8000 \
-            -v /Users/nicholas/Databases:/app/DatabasesMount \
-            ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:staging
-
-  test-staging-integration:
-    name: Integration Test on Staging
-    needs: deploy-staging-local
+  # Matrix-based integration test job
+  test-integration:
+    name: Integration Test
+    needs: deploy
     runs-on: self-hosted
-    if: github.ref == 'refs/heads/staging'
-    environment: staging
+    strategy: *matrix-config
+    if: github.ref == matrix.config.branch_ref
+    environment: ${{ matrix.config.environment }}
     steps:
       - name: Wait for API to be ready
-        run: |
-          for i in {1..10}; do
-            if curl -sSf http://mbpnv.local:8005/healthz; then
-              echo "API is up!"
-              exit 0
-            fi
-            echo "Waiting for API... ($i)"
-            sleep 5
-          done
-          echo "API did not become ready in time" >&2
-          exit 1
+        run: bash scripts/health-check.sh ${{ matrix.config.port }}
 
       - name: Test API endpoint with SQL query
-        run: |
-          set -e
-          RESPONSE=$(curl -sSf -X POST http://mbpnv.local:8005/execute_sql \
-            -H "Content-Type: application/json" \
-            -d '{"query": "SELECT * FROM transactions LIMIT 1;"}')
-          echo "Response: $RESPONSE"
-          EXPECTED='[{"Type":"CARD_PAYMENT","Product":"Current","Started Date":"2025-04-04 04:24:04","Completed Date":"2025-04-05 10:15:28","Description":"Transport for London","Amount":-5.7,"Fee":0.0,"Currency":"GBP","QUI":"B","COMMENT":null}]'
-          RESULT=$(echo "$RESPONSE" | jq -c '.result')
-          if [ "$RESULT" = "$EXPECTED" ]; then
-            echo "Integration test passed."
-          else
-            echo "Integration test failed. Expected: $EXPECTED, Got: $RESULT" >&2
-            exit 1
-          fi
+        run: bash scripts/test-sql.sh ${{ matrix.config.port }} ${{ matrix.config.db_name }}
 
-  build-prod:
+  # Alias job for staging tests (needed for prod dependency)
+  test-staging:
+    needs: test-integration
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    needs: test-staging-integration
-    environment: prod
+    if: github.ref == 'refs/heads/staging'
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set lowercase repo owner
-        id: repo_owner
-        run: echo "owner=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
-
-      - name: Install uv
-        run: |
-          curl -Ls https://astral.sh/uv/install.sh | bash
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-
-      - name: Sync dependencies with uv
-        run: |
-          cd services/database
-          uv sync
-
-      - name: Run tests
-        run: |
-          cd services/database
-          uv run pytest
-        env:
-          APP_ENV: ${{ vars.APP_ENV }}
-
-      - name: Log in to GitHub Container Registry
-        run: |
-          echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
-      - name: Build Docker image
-        run: |
-          COMMIT_HASH=${GITHUB_SHA::7}
-          docker build \
-            --build-arg APP_ENV=${{ vars.APP_ENV }} \
-            -t ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:prod \
-            -t ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:prod-$COMMIT_HASH services/database
-
-      - name: Push Docker image to GitHub Container Registry
-        run: |
-          COMMIT_HASH=${GITHUB_SHA::7}
-          docker push ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:prod
-          docker push ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:prod-$COMMIT_HASH
+      - name: Staging tests completed
+        run: echo "Staging integration tests completed successfully"
