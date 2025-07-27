@@ -18,8 +18,6 @@ jobs:
       image_tag: staging
       port: "8005:8000"
       container_name: compta-data-app-staging
-    secrets:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # Production environment for staging branch (runs after staging)
   production-staging:
@@ -31,8 +29,6 @@ jobs:
       image_tag: prod
       port: "8009:8000"
       container_name: compta-data-app-prod
-    secrets:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # Production environment for main branch (runs immediately)
   production-main:
@@ -43,5 +39,3 @@ jobs:
       image_tag: prod
       port: "8009:8000"
       container_name: compta-data-app-prod
-    secrets:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
