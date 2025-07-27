@@ -8,7 +8,7 @@
 # ** UPDATE THIS TO YOUR GITHUB USERNAME **
 GITHUB_REGISTRY=ghcr.io/vachonni
 
-.PHONY: helprun-app pytest docker-build-dev docker-run-dev docker-up-dev docker-run-staging
+.PHONY: helprun-app pytest docker-build-dev docker-run-dev docker-up-dev docker-run-staging docker-run-prod 
 
 help:
 	@echo "Available targets:"
@@ -18,6 +18,7 @@ help:
 	@echo "  docker-run-dev    Run the dev Docker container (does not rebuild)."
 	@echo "  docker-up-dev     Build and run the dev Docker container."
 	@echo "  docker-run-staging  Pull and run the staging Docker image with .env.staging."
+	@echo "  docker-run-prod     Pull and run the prod Docker image with .env.prod."
 
 run-app:
 	uv run uvicorn database_pkg.app:app --host 0.0.0.0 --port 8000 --reload
