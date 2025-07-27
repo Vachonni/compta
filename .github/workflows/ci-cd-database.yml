@@ -1,160 +1,41 @@
-# GitHub Actions CI/CD workflow for database service (main branch)
+# GitHub Actions CI/CD workflow for database service
 name: Database CI/CD Pipeline
 
 on:
   push:
-    branches:
-      - staging
-      - main
+    branches: [staging, main]
     paths:
       - 'services/database/**'
       - '.github/workflows/ci-cd-database.yml'
 
 jobs:
-  # Staging build job
-  build-staging:
-    runs-on: ubuntu-latest
+  # Staging environment (always runs on staging branch)
+  staging:
     if: github.ref == 'refs/heads/staging'
-    environment: staging
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    uses: ./.github/workflows/build-and-deploy.yml
+    with:
+      environment: staging
+      image_tag: staging
+      port: "8005:8000"
+      container_name: compta-data-app-staging
 
-      - name: Set lowercase repo owner
-        id: repo_owner
-        run: echo "owner=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+  # Production environment for staging branch (runs after staging)
+  production-staging:
+    if: github.ref == 'refs/heads/staging'
+    needs: staging
+    uses: ./.github/workflows/build-and-deploy.yml
+    with:
+      environment: prod
+      image_tag: prod
+      port: "8009:8000"
+      container_name: compta-data-app-prod
 
-      - name: Python Build and Test
-        uses: ./.github/actions/python-build-test
-        with:
-          python-version: '3.13'
-          app-env: ${{ vars.APP_ENV }}
-
-      - name: Build and Push Docker image to GHCR
-        uses: ./.github/actions/build-to-ghcr
-        with:
-          image: ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:staging
-          image_extra: ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:staging-${{ github.sha }}
-          build_context: services/database
-          build_args: --build-arg APP_ENV=${{ vars.APP_ENV }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          github_actor: ${{ github.actor }}
-
-  # Production build job (depends on staging tests)
-  build-prod:
-    runs-on: ubuntu-latest
+  # Production environment for main branch (runs immediately)
+  production-main:
     if: github.ref == 'refs/heads/main'
-    environment: prod
-    needs: test-staging
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set lowercase repo owner
-        id: repo_owner
-        run: echo "owner=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
-
-      - name: Python Build and Test
-        uses: ./.github/actions/python-build-test
-        with:
-          python-version: '3.13'
-          app-env: ${{ vars.APP_ENV }}
-
-      - name: Build and Push Docker image to GHCR
-        uses: ./.github/actions/build-to-ghcr
-        with:
-          image: ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:prod
-          image_extra: ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:prod-${{ github.sha }}
-          build_context: services/database
-          build_args: --build-arg APP_ENV=${{ vars.APP_ENV }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          github_actor: ${{ github.actor }}
-
-  # Staging deploy job
-  deploy-staging:
-    name: Deploy to Local Docker (Staging)
-    needs: build-staging
-    runs-on: self-hosted
-    if: github.ref == 'refs/heads/staging'
-    environment: staging
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set lowercase repo owner
-        id: repo_owner
-        run: echo "owner=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
-
-      - name: Deploy Docker container
-        uses: ./.github/actions/deploy-docker-mbpnv
-        with:
-          image: ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:staging
-          name: compta-data-app-staging
-          port: 8005:8000
-          env: APP_ENV=${{ vars.APP_ENV }}
-          volume: /Users/nicholas/Databases:/app/DatabasesMount
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          github_actor: ${{ github.actor }}
-
-  # Production deploy job
-  deploy-prod:
-    name: Deploy to Local Docker (Production)
-    needs: build-prod
-    runs-on: self-hosted
-    if: github.ref == 'refs/heads/main'
-    environment: prod
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set lowercase repo owner
-        id: repo_owner
-        run: echo "owner=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
-
-      - name: Deploy Docker container
-        uses: ./.github/actions/deploy-docker-mbpnv
-        with:
-          image: ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:prod
-          name: compta-data-app-prod
-          port: 8009:8000
-          env: APP_ENV=${{ vars.APP_ENV }}
-          volume: /Users/nicholas/Databases:/app/DatabasesMount
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          github_actor: ${{ github.actor }}
-
-  # Staging integration test job
-  test-integration-staging:
-    name: Integration Test (Staging)
-    needs: deploy-staging
-    runs-on: self-hosted
-    if: github.ref == 'refs/heads/staging'
-    environment: staging
-    steps:
-      - name: Wait for API to be ready
-        run: bash scripts/health-check.sh 8005
-
-      - name: Test API endpoint with SQL query
-        run: bash scripts/test-sql.sh 8005 dev_db
-
-  # Production integration test job
-  test-integration-prod:
-    name: Integration Test (Production)
-    needs: deploy-prod
-    runs-on: self-hosted
-    if: github.ref == 'refs/heads/main'
-    environment: prod
-    steps:
-      - name: Wait for API to be ready
-        run: bash scripts/health-check.sh 8009
-
-      - name: Test API endpoint with SQL query
-        run: bash scripts/test-sql.sh 8009 prod_db
-
-  # Alias job for staging tests (needed for prod dependency)
-  test-staging:
-    needs: test-integration-staging
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/staging'
-    steps:
-      - name: Staging tests completed
-        run: echo "Staging integration tests completed successfully"
+    uses: ./.github/workflows/build-and-deploy.yml
+    with:
+      environment: prod
+      image_tag: prod
+      port: "8009:8000"
+      container_name: compta-data-app-prod

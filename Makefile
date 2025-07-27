@@ -18,7 +18,8 @@ help:
 	@echo "  database-docker-run-prod    Pull and run the prod Docker image for the database service."
 
 run-runner: # Run the GitHub Actions self-hosted runner
-	./.github/workflows/actions-runner/run.sh
+	~/actions-runner/run.sh
+	# Think about service management when serious production with ~/actions-runner/.svc.sh install and ~/actions-runner/.svc.sh start. Details with ~/actions-runner/.svc.sh help
 
 database-run-app:
 	$(MAKE) -C $(DATABASE_DIR) run-app
