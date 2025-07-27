@@ -78,6 +78,9 @@ jobs:
     if: github.ref == 'refs/heads/staging'
     environment: staging
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Set lowercase repo owner
         id: repo_owner
         run: echo "owner=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
@@ -101,6 +104,9 @@ jobs:
     if: github.ref == 'refs/heads/main'
     environment: prod
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Set lowercase repo owner
         id: repo_owner
         run: echo "owner=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
