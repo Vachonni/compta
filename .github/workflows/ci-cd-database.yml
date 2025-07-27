@@ -6,13 +6,15 @@ on:
   push:
     branches:
       - staging
+      - main
     paths:
       - 'services/database/**'
       - '.github/workflows/ci-cd-database.yml'
 
 jobs:
-  build:
+  build-staging:
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/staging'
     environment: staging
     steps:
       - name: Checkout repository
@@ -34,7 +36,7 @@ jobs:
 
       - name: Sync dependencies with uv
         run: |
-          cd database
+          cd services/database
           uv sync
 
       - name: Run tests
@@ -57,3 +59,79 @@ jobs:
       - name: Push Docker image to GitHub Container Registry
         run: |
           docker push ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:staging
+
+  deploy-staging-local:
+    name: Deploy to Local Docker (Staging)
+    needs: build-staging
+    runs-on: self-hosted
+    if: github.ref == 'refs/heads/staging'
+    environment: staging
+    steps:
+      - name: Set lowercase repo owner
+        id: repo_owner
+        run: echo "owner=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+
+      - name: Log in to GitHub Container Registry
+        run: |
+          echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Pull Docker image
+        run: |
+          docker pull ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:staging
+
+      - name: Stop and remove existing container (if running)
+        run: |
+          docker stop compta-data-app-staging || true
+          docker rm compta-data-app-staging || true
+
+      - name: Run new container
+        run: |
+          docker run -d --name compta-data-app-staging --env APP_ENV=${{ vars.APP_ENV }} -p 8005:8000 ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:staging
+
+  build-prod:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment: prod
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set lowercase repo owner
+        id: repo_owner
+        run: echo "owner=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install uv
+        run: |
+          curl -Ls https://astral.sh/uv/install.sh | bash
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Sync dependencies with uv
+        run: |
+          cd services/database
+          uv sync
+
+      - name: Run tests
+        run: |
+          cd services/database
+          uv run pytest
+        env:
+          APP_ENV: ${{ vars.APP_ENV }}
+
+      - name: Log in to GitHub Container Registry
+        run: |
+          echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            --build-arg APP_ENV=${{ vars.APP_ENV }} \
+            -t ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:prod services/database
+
+      - name: Push Docker image to GitHub Container Registry
+        run: |
+          docker push ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:prod

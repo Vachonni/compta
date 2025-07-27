@@ -6,6 +6,7 @@ import os
 from enum import Enum
 from pathlib import Path
 
+from pydantic import Field
 from pydantic_settings import BaseSettings
 
 env_file: str = f".env.{os.getenv('APP_ENV', 'local')}"
@@ -27,7 +28,9 @@ class DatabaseSettings(BaseSettings):
     DATABASES_DIR_LOCAL: str = "/Users/nicholas/Databases"
     DATABASES_DIR_DOCKER: str = "/app/DatabasesMount"
     # Fields loaded from environment variables
-    app_env: AppEnvEnum
+    app_env: AppEnvEnum = Field(
+        default=AppEnvEnum.LOCAL
+    )  # Necesary for pytest in Docker
 
     model_config = {
         "env_file": env_file,

@@ -5,9 +5,10 @@
 
 
 # GitHub Container Registry path (without image name or tag)
-GITHUB_REGISTRY=ghcr.io/$(shell echo $$(git config --get remote.origin.url) | sed -E 's#.*/([^/]+)/compta.*#\1#' | tr '[:upper:]' '[:lower:]')
+# ** UPDATE THIS TO YOUR GITHUB USERNAME **
+GITHUB_REGISTRY=ghcr.io/vachonni
 
-.PHONY: helprun-app pytest docker-build-dev docker-run-dev docker-up-dev docker-run-staging
+.PHONY: helprun-app pytest docker-build-dev docker-run-dev docker-up-dev docker-run-staging docker-run-prod 
 
 help:
 	@echo "Available targets:"
@@ -17,6 +18,7 @@ help:
 	@echo "  docker-run-dev    Run the dev Docker container (does not rebuild)."
 	@echo "  docker-up-dev     Build and run the dev Docker container."
 	@echo "  docker-run-staging  Pull and run the staging Docker image with .env.staging."
+	@echo "  docker-run-prod     Pull and run the prod Docker image with .env.prod."
 
 run-app:
 	uv run uvicorn database_pkg.app:app --host 0.0.0.0 --port 8000 --reload
@@ -36,4 +38,6 @@ docker-run-staging:
 	docker pull $(GITHUB_REGISTRY)/compta-data-app:staging
 	docker run --env-file .env.staging -p 8005:8000 -v /Users/nicholas/Databases:/app/DatabasesMount $(GITHUB_REGISTRY)/compta-data-app:staging
 
-
+docker-run-prod: 
+	docker pull $(GITHUB_REGISTRY)/compta-data-app:prod
+	docker run --env-file .env.prod -p 8009:8000 -v /Users/nicholas/Databases:/app/DatabasesMount $(GITHUB_REGISTRY)/compta-data-app:prod
