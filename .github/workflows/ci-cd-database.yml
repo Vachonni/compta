@@ -105,33 +105,10 @@ jobs:
     environment: staging
     steps:
       - name: Wait for API to be ready
-        run: |
-          for i in {1..10}; do
-            if curl -sSf http://mbpnv.local:8005/healthz; then
-              echo "API is up!"
-              exit 0
-            fi
-            echo "Waiting for API... ($i)"
-            sleep 5
-          done
-          echo "API did not become ready in time" >&2
-          exit 1
+        run: bash scripts/health-check.sh 8005
 
       - name: Test API endpoint with SQL query
-        run: |
-          set -e
-          RESPONSE=$(curl -sSf -X POST http://mbpnv.local:8005/execute_sql \
-            -H "Content-Type: application/json" \
-            -d '{"query": "SELECT * FROM transactions LIMIT 1;"}')
-          echo "Response: $RESPONSE"
-          EXPECTED='[{"Type":"CARD_PAYMENT","Product":"Current","Started Date":"2025-04-04 04:24:04","Completed Date":"2025-04-05 10:15:28","Description":"Transport for London","Amount":-5.7,"Fee":0.0,"Currency":"GBP","QUI":"B","COMMENT":null}]'
-          RESULT=$(echo "$RESPONSE" | jq -c '.result')
-          if [ "$RESULT" = "$EXPECTED" ]; then
-            echo "Integration test passed."
-          else
-            echo "Integration test failed. Expected: $EXPECTED, Got: $RESULT" >&2
-            exit 1
-          fi
+        run: bash scripts/test-sql.sh 8005 dev_db
 
   build-prod:
     runs-on: ubuntu-latest
