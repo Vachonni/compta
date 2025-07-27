@@ -86,7 +86,12 @@ jobs:
 
       - name: Run new container
         run: |
-          docker run -d --name compta-data-app-staging --env APP_ENV=${{ vars.APP_ENV }} -p 8005:8000 ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:staging
+          docker run -d \
+            --name compta-data-app-staging \
+            --env APP_ENV=${{ vars.APP_ENV }} \
+            -p 8005:8000 \
+            -v /Users/nicholas/Databases:/app/DatabasesMount \
+            ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:staging
 
   build-prod:
     runs-on: ubuntu-latest
