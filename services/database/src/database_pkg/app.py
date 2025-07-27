@@ -10,6 +10,9 @@ app = FastAPI()
 class SQLQuery(BaseModel):
     query: str
 
+@app.get("/healthz")
+async def healthz():
+    return {"status": "ok"}
 
 @app.post("/execute_sql")
 async def execute_sql(sql_query: SQLQuery, conn=Depends(get_db_connection)):

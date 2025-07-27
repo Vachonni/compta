@@ -1,0 +1,37 @@
+name: 'Python Build and Test'
+description: 'Set up Python, install uv, sync dependencies, and run tests.'
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install uv
+      shell: bash
+      run: |
+        curl -Ls https://astral.sh/uv/install.sh | bash
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+    - name: Sync dependencies with uv
+      shell: bash
+      run: |
+        cd services/database
+        uv sync
+
+    - name: Run tests
+      shell: bash
+      run: |
+        cd services/database
+        uv run pytest
+      env:
+        APP_ENV: ${{ inputs.app-env }}
+
+inputs:
+  python-version:
+    description: 'Python version to use'
+    required: true
+  app-env:
+    description: 'APP_ENV environment variable'
+    required: true

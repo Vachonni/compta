@@ -1,0 +1,74 @@
+name: 'Deploy Docker Container'
+description: 'Deploys a Docker container with specified parameters'
+
+inputs:
+  image:
+    description: 'Docker image to run'
+    required: true
+  name:
+    description: 'Container name'
+    required: true
+  port:
+    description: 'Port mapping (host:container)'
+    required: true
+  env:
+    description: 'Environment variable string (e.g. APP_ENV=prod)'
+    required: true
+  volume:
+    description: 'Volume mapping (host:container)'
+    required: true
+  github_token:
+    description: 'GitHub token for registry login'
+    required: true
+  github_actor:
+    description: 'GitHub actor for registry login'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Log in to GitHub Container Registry
+      shell: bash
+      run: |
+        echo "${{ inputs.github_token }}" | docker login ghcr.io -u "${{ inputs.github_actor }}" --password-stdin
+
+    - name: Pull Docker image
+      shell: bash
+      run: |
+        docker pull ${{ inputs.image }}
+
+    - name: Stop and remove existing container
+      shell: bash
+      run: |
+        if docker ps -q -f name=${{ inputs.name }} | grep -q .; then
+          echo "Stopping existing container: ${{ inputs.name }}"
+          docker stop ${{ inputs.name }}
+        fi
+        if docker ps -aq -f name=${{ inputs.name }} | grep -q .; then
+          echo "Removing existing container: ${{ inputs.name }}"
+          docker rm ${{ inputs.name }}
+        fi
+
+    - name: Run new container
+      shell: bash
+      run: |
+        docker run -d \
+          --name ${{ inputs.name }} \
+          --env ${{ inputs.env }} \
+          -p ${{ inputs.port }} \
+          -v ${{ inputs.volume }} \
+          --restart unless-stopped \
+          ${{ inputs.image }}
+
+    - name: Verify container is running
+      shell: bash
+      run: |
+        sleep 2
+        if docker ps -q -f name=${{ inputs.name }} | grep -q .; then
+          echo "✅ Container ${{ inputs.name }} is running successfully"
+          docker ps -f name=${{ inputs.name }}
+        else
+          echo "❌ Container ${{ inputs.name }} failed to start"
+          docker logs ${{ inputs.name }}
+          exit 1
+        fi
