@@ -25,13 +25,13 @@ jobs:
         run: echo "owner=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
       - name: Python Build and Test
-        uses: ./.github/actions/python-build-test.yml
+        uses: ./.github/actions/python-build-test
         with:
           python-version: '3.13'
           app-env: ${{ vars.APP_ENV }}
 
       - name: Build and Push Docker image to GHCR
-        uses: ./.github/actions/build-to-ghcr.yml
+        uses: ./.github/actions/build-to-ghcr
         with:
           image: ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:staging
           image_extra: ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:staging-${{ github.sha }}
@@ -55,13 +55,13 @@ jobs:
         run: echo "owner=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
       - name: Python Build and Test
-        uses: ./.github/actions/python-build-test.yml
+        uses: ./.github/actions/python-build-test
         with:
           python-version: '3.13'
           app-env: ${{ vars.APP_ENV }}
 
       - name: Build and Push Docker image to GHCR
-        uses: ./.github/actions/build-to-ghcr.yml
+        uses: ./.github/actions/build-to-ghcr
         with:
           image: ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:prod
           image_extra: ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:prod-${{ github.sha }}
@@ -83,7 +83,7 @@ jobs:
         run: echo "owner=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
       - name: Deploy Docker container
-        uses: ./.github/actions/deploy-docker-mbpnv.yml
+        uses: ./.github/actions/deploy-docker-mbpnv
         with:
           image: ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:staging
           name: compta-data-app-staging
@@ -106,7 +106,7 @@ jobs:
         run: echo "owner=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
       - name: Deploy Docker container
-        uses: ./.github/actions/deploy-docker-mbpnv.yml
+        uses: ./.github/actions/deploy-docker-mbpnv
         with:
           image: ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:prod
           name: compta-data-app-prod
