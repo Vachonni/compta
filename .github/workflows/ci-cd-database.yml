@@ -10,11 +10,31 @@ on:
       - 'services/database/**'
       - '.github/workflows/ci-cd-database.yml'
 
+# Define the matrix configuration once using YAML anchors
+x-matrix-config: &matrix-config
+  matrix:
+    config:
+      - environment: staging
+        branch_ref: 'refs/heads/staging'
+        image_tag: staging
+        port: 8005
+        db_name: dev_db
+      - environment: prod
+        branch_ref: 'refs/heads/main'
+        image_tag: prod
+        port: 8009
+        db_name: prod_db
+
 jobs:
-  build-staging:
+  # Matrix-based build job that handles both staging and prod
+  build:
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/staging'
-    environment: staging
+    strategy: *matrix-config
+    # Only run the matrix job that matches the current branch
+    if: github.ref == matrix.config.branch_ref
+    environment: ${{ matrix.config.environment }}
+    # For prod builds, depend on staging tests completing successfully
+    needs: ${{ matrix.config.environment == 'prod' && 'test-staging' || '' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -29,112 +49,60 @@ jobs:
           python-version: '3.13'
           app-env: ${{ vars.APP_ENV }}
 
-      - name: Build and Push Docker image to GHCR (staging)
+      - name: Build and Push Docker image to GHCR
         uses: ./.github/actions/build-to-ghcr.yml
         with:
-          image: ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:staging
-          image_extra: ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:staging-${{ github.sha }}
+          image: ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:${{ matrix.config.image_tag }}
+          image_extra: ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:${{ matrix.config.image_tag }}-${{ github.sha }}
           build_context: services/database
           build_args: --build-arg APP_ENV=${{ vars.APP_ENV }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           github_actor: ${{ github.actor }}
 
-  deploy-staging-local:
-    name: Deploy to Local Docker (Staging)
-    needs: build-staging
+  # Matrix-based deploy job
+  deploy:
+    name: Deploy to Local Docker
+    needs: build
     runs-on: self-hosted
-    if: github.ref == 'refs/heads/staging'
-    environment: staging
+    strategy: *matrix-config
+    if: github.ref == matrix.config.branch_ref
+    environment: ${{ matrix.config.environment }}
     steps:
       - name: Set lowercase repo owner
         id: repo_owner
         run: echo "owner=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
-      - name: Deploy Docker container (staging)
+      - name: Deploy Docker container
         uses: ./.github/actions/deploy-docker-mbpnv.yml
         with:
-          image: ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:staging
-          name: compta-data-app-staging
-          port: 8005:8000
+          image: ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:${{ matrix.config.image_tag }}
+          name: compta-data-app-${{ matrix.config.environment }}
+          port: ${{ matrix.config.port }}:8000
           env: APP_ENV=${{ vars.APP_ENV }}
           volume: /Users/nicholas/Databases:/app/DatabasesMount
           github_token: ${{ secrets.GITHUB_TOKEN }}
           github_actor: ${{ github.actor }}
 
-  test-staging-integration:
-    name: Integration Test on Staging
-    needs: deploy-staging-local
+  # Matrix-based integration test job
+  test-integration:
+    name: Integration Test
+    needs: deploy
     runs-on: self-hosted
-    if: github.ref == 'refs/heads/staging'
-    environment: staging
+    strategy: *matrix-config
+    if: github.ref == matrix.config.branch_ref
+    environment: ${{ matrix.config.environment }}
     steps:
       - name: Wait for API to be ready
-        run: bash scripts/health-check.sh 8005
+        run: bash scripts/health-check.sh ${{ matrix.config.port }}
 
       - name: Test API endpoint with SQL query
-        run: bash scripts/test-sql.sh 8005 dev_db
+        run: bash scripts/test-sql.sh ${{ matrix.config.port }} ${{ matrix.config.db_name }}
 
-  build-prod:
+  # Alias job for staging tests (needed for prod dependency)
+  test-staging:
+    needs: test-integration
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    needs: test-staging-integration
-    environment: prod
+    if: github.ref == 'refs/heads/staging'
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set lowercase repo owner
-        id: repo_owner
-        run: echo "owner=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
-
-      - name: Python Build and Test
-        uses: ./.github/actions/python-build-test.yml
-        with:
-          python-version: '3.13'
-          app-env: ${{ vars.APP_ENV }}
-
-      - name: Build and Push Docker image to GHCR (prod)
-        uses: ./.github/actions/build-to-ghcr.yml
-        with:
-          image: ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:prod
-          image_extra: ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:prod-${{ github.sha }}
-          build_context: services/database
-          build_args: --build-arg APP_ENV=${{ vars.APP_ENV }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          github_actor: ${{ github.actor }}
-
-  deploy-prod-local:
-    name: Deploy to Local Docker (Prod)
-    needs: build-prod
-    runs-on: self-hosted
-    if: github.ref == 'refs/heads/main'
-    environment: prod
-    steps:
-      - name: Set lowercase repo owner
-        id: repo_owner
-        run: echo "owner=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
-
-      - name: Deploy Docker container (prod)
-        uses: ./.github/actions/deploy-docker-mbpnv.yml
-        with:
-          image: ghcr.io/${{ steps.repo_owner.outputs.owner }}/compta-data-app:prod
-          name: compta-data-app-prod
-          port: 8009:8000
-          env: APP_ENV=${{ vars.APP_ENV }}
-          volume: /Users/nicholas/Databases:/app/DatabasesMount
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          github_actor: ${{ github.actor }}
-  
-
-  test-prod-integration:
-    name: Integration Test on Prod
-    needs: deploy-prod-local
-    runs-on: self-hosted
-    if: github.ref == 'refs/heads/main'
-    environment: prod
-    steps:
-      - name: Wait for API to be ready
-        run: bash scripts/health-check.sh 8009
-
-      - name: Test API endpoint with SQL query
-        run: bash scripts/test-sql.sh 8009 prod_db
+      - name: Staging tests completed
+        run: echo "Staging integration tests completed successfully"
