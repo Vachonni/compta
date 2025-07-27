@@ -10,26 +10,23 @@ on:
       - 'services/database/**'
       - '.github/workflows/ci-cd-database.yml'
 
-# Define the matrix configuration once using YAML anchors
-x-matrix-config: &matrix-config
-  matrix:
-    config:
-      - environment: staging
-        branch_ref: 'refs/heads/staging'
-        image_tag: staging
-        port: 8005
-        db_name: dev_db
-      - environment: prod
-        branch_ref: 'refs/heads/main'
-        image_tag: prod
-        port: 8009
-        db_name: prod_db
-
 jobs:
   # Matrix-based build job that handles both staging and prod
   build:
     runs-on: ubuntu-latest
-    strategy: *matrix-config
+    strategy:
+      matrix:
+        config:
+          - environment: staging
+            branch_ref: 'refs/heads/staging'
+            image_tag: staging
+            port: 8005
+            db_name: dev_db
+          - environment: prod
+            branch_ref: 'refs/heads/main'
+            image_tag: prod
+            port: 8009
+            db_name: prod_db
     # Only run the matrix job that matches the current branch
     if: github.ref == matrix.config.branch_ref
     environment: ${{ matrix.config.environment }}
@@ -64,7 +61,19 @@ jobs:
     name: Deploy to Local Docker
     needs: build
     runs-on: self-hosted
-    strategy: *matrix-config
+    strategy:
+      matrix:
+        config:
+          - environment: staging
+            branch_ref: 'refs/heads/staging'
+            image_tag: staging
+            port: 8005
+            db_name: dev_db
+          - environment: prod
+            branch_ref: 'refs/heads/main'
+            image_tag: prod
+            port: 8009
+            db_name: prod_db
     if: github.ref == matrix.config.branch_ref
     environment: ${{ matrix.config.environment }}
     steps:
@@ -88,7 +97,19 @@ jobs:
     name: Integration Test
     needs: deploy
     runs-on: self-hosted
-    strategy: *matrix-config
+    strategy:
+      matrix:
+        config:
+          - environment: staging
+            branch_ref: 'refs/heads/staging'
+            image_tag: staging
+            port: 8005
+            db_name: dev_db
+          - environment: prod
+            branch_ref: 'refs/heads/main'
+            image_tag: prod
+            port: 8009
+            db_name: prod_db
     if: github.ref == matrix.config.branch_ref
     environment: ${{ matrix.config.environment }}
     steps:
