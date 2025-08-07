@@ -22,28 +22,31 @@ services/
       database_pkg/
         __init__.py
         app.py
-        config.py
         excel_to_sqlite.py
         utils.py
+        config/
+          __init__.py
+          logs.py
+          schemas.py
+          settings.py
     tests/
       test_app.py
-      test_config.py
+      test_settings.py
 shared/
   __init__.py
   config/
     __init__.py
     logging_config.py
     settings.py
- 
- .github/
-   actions/
-     build-to-ghcr/action.yml
-     deploy-docker-mbpnv/action.yml
-     python-build-test/action.yml
-   workflows/
-     build-and-deploy.yml
-     ci-cd-database.yml
- .gitignore
+.github/
+  actions/
+    build-to-ghcr/action.yml
+    deploy-docker-mbpnv/action.yml
+    python-build-test/action.yml
+  workflows/
+    build-and-deploy.yml
+    ci-cd-database.yml
+.gitignore
 ```
 
 
@@ -52,12 +55,18 @@ shared/
 ```
 Databases/
   compta/
-    Blob/
-      Legacy/
-        REVOLUT AVRIL 2025.xlsx
+    blob/
+      dev/
+        Legacy/
+          REVOLUT AVRIL 2025.xlsx
+        raw/
+          2025/
+      prod/
+        raw/
+          2025/
     SQL/
-      dev.db
       prod.db
+      dev.db
 ```
 
 ## Description
