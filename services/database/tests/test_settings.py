@@ -34,7 +34,9 @@ def test_env_variables_are_loaded(monkeypatch: MonkeyPatch) -> None:
     assert settings.databases_dir == settings.DATABASES_DIR_DOCKER
     assert settings.db_path == Path(settings.databases_dir) / "compta"
     assert settings.sqlite_path == settings.db_path / "SQL" / "dev.db"
-    assert settings.excel_path == settings.blob_path / "Legacy" / "REVOLUT AVRIL 2025.xlsx"
+    assert (
+        settings.excel_path == settings.blob_path / "Legacy" / "REVOLUT AVRIL 2025.xlsx"
+    )
 
 
 def test_app_env_enum_variants(monkeypatch: MonkeyPatch) -> None:
@@ -77,7 +79,7 @@ def test_databases_dir_property(monkeypatch: MonkeyPatch) -> None:
     reload(settings_mod)
     settings = settings_mod.database_settings
     assert settings.databases_dir == settings.DATABASES_DIR_LOCAL
-    assert "/Users/nicholas/Databases" in settings.databases_dir
+    assert "/Users/nicholasvachon/Databases" in settings.databases_dir
 
     # Test non-LOCAL environment (DEV)
     monkeypatch.setenv("APP_ENV", "dev")
@@ -172,7 +174,7 @@ def test_property_paths_consistency(monkeypatch: MonkeyPatch) -> None:
     monkeypatch.setenv("APP_ENV", "staging")
     reload(settings_mod)
     settings = settings_mod.database_settings
-    
+
     # Verify path hierarchy consistency
     assert settings.db_path == Path(settings.databases_dir) / "compta"
     assert settings.blob_path.parent.parent == settings.db_path
