@@ -1,5 +1,5 @@
-import os
 import shutil
+from pathlib import Path
 from fastapi import Depends, FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.responses import JSONResponse
 
@@ -64,19 +64,17 @@ async def upload_file(
             status_code=400,
             detail="Invalid file type. Only PDF, CSV, and Excel files are accepted.",
         )
-    save_dir = os.path.join(
-        str(database_settings.db_path), "blob", "raw", str(year), str(month)
-    )
-    os.makedirs(save_dir, exist_ok=True)
-    save_path = os.path.join(save_dir, f"{owner}_{bank}.{ext}")
-    if not overwrite and os.path.exists(save_path):
+    save_dir = Path(database_settings.blob_path) / "raw" / str(year) / str(month)
+    save_dir.mkdir(parents=True, exist_ok=True)
+    save_path = save_dir / f"{owner.value}_{bank.value}.{ext}"
+    if not overwrite and save_path.exists():
         raise HTTPException(
             status_code=409,
             detail="File already exists. Set overwrite=True to replace it.",
         )
-    with open(save_path, "wb") as buffer:
+    with save_path.open("wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
-    return {"detail": "File uploaded successfully.", "path": save_path}
+    return {"detail": "File uploaded successfully.", "path": str(save_path)}
 
 
 @app.post(
