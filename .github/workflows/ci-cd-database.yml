@@ -6,7 +6,7 @@ on:
     branches: [staging, main]
     paths:
       - 'services/database/**'
-      - '.github/workflows/ci-cd-database.yml'
+      - '.github/workflows/**'
 
 jobs:
   # Staging environment (always runs on staging branch)
