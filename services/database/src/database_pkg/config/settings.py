@@ -12,7 +12,7 @@ class DatabaseSettings(BaseSettings):
     """Settings for the database service."""
 
     SERVICE_NAME: str = "database"
-    DATABASES_DIR_LOCAL: str = "/Users/nicholas/Databases"
+    DATABASES_DIR_LOCAL: str = "/Users/nicholasvachon/Databases"
     DATABASES_DIR_DOCKER: str = "/app/DatabasesMount"
     app_env: AppEnvEnum = Field(default=AppEnvEnum.LOCAL)
 
