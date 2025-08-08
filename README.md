@@ -41,7 +41,7 @@ shared/
 .github/
   actions/
     build-to-ghcr/action.yml
-    deploy-docker-mbpnv/action.yml
+    deploy-docker-local/action.yml
     python-build-test/action.yml
   workflows/
     build-and-deploy.yml

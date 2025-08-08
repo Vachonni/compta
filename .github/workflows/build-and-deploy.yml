@@ -62,7 +62,7 @@ jobs:
         run: echo "owner=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
       - name: Deploy Docker container
-        uses: ./.github/actions/deploy-docker-mbpnv
+        uses: ./.github/actions/deploy-docker-local
         with:
           image: ${{ needs.build.outputs.image }}
           name: ${{ inputs.container_name }}
