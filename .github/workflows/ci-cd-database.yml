@@ -22,7 +22,7 @@ jobs:
   # Production environment for staging branch (runs after staging)
   production-staging:
     if: github.ref == 'refs/heads/staging'
-    needs: staging
+    needs: [staging]
     uses: ./.github/workflows/build-and-deploy.yml
     with:
       environment: prod

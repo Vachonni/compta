@@ -68,7 +68,7 @@ jobs:
           name: ${{ inputs.container_name }}
           port: ${{ inputs.port }}
           env: APP_ENV=${{ vars.APP_ENV }}
-          volume: /Users/nicholasvachon/Databases:/app/DatabasesMount
+          volume: ${{ vars.local_databases_dir }}:${{ vars.docker_databases_dir }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           github_actor: ${{ github.actor }}
 
