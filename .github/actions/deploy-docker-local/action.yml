@@ -57,6 +57,7 @@ runs:
         docker run -d \
           --name ${{ inputs.name }} \
           --env-file /tmp/container.env \
+          -e UV_CACHE_DIR=/tmp/uv-cache \
           -p ${{ inputs.port }} \
           -v ${{ inputs.volume }} \
           --restart unless-stopped \
