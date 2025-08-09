@@ -39,7 +39,7 @@ jobs:
         with:
           python-version: '3.13'
         env:
-          APP_ENV: ${{ vars.APP_ENV }}
+          APP_ENV: ${{ env.APP_ENV }}
           LOCAL_DATABASES_DIR: ${{ vars.LOCAL_DATABASES_DIR }}
           DOCKER_DATABASES_DIR: ${{ vars.DOCKER_DATABASES_DIR }}
 
@@ -49,9 +49,9 @@ jobs:
           image: ${{ steps.image.outputs.image }}
           image_extra: ${{ steps.image.outputs.image }}-${{ github.sha }}
           build_context: services/database
-          build_args: --build-arg APP_ENV=${{ vars.APP_ENV }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           github_actor: ${{ github.actor }}
+        
 
   deploy:
     needs: build
@@ -70,10 +70,13 @@ jobs:
           image: ${{ needs.build.outputs.image }}
           name: ${{ inputs.container_name }}
           port: ${{ inputs.port }}
-          env: APP_ENV=${{ vars.APP_ENV }}
           volume: ${{ vars.local_databases_dir }}:${{ vars.docker_databases_dir }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           github_actor: ${{ github.actor }}
+        env:
+          APP_ENV: ${{ env.APP_ENV }}
+          DOCKER_DATABASES_DIR: ${{ vars.DOCKER_DATABASES_DIR }}
+          LOCAL_DATABASES_DIR: ${{ vars.LOCAL_DATABASES_DIR }}
 
   test:
     needs: deploy

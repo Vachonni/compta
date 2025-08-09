@@ -11,9 +11,6 @@ inputs:
   port:
     description: 'Port mapping (host:container)'
     required: true
-  env:
-    description: 'Environment variable string (e.g. APP_ENV=prod)'
-    required: true
   volume:
     description: 'Volume mapping (host:container)'
     required: true
@@ -49,12 +46,17 @@ runs:
           docker rm ${{ inputs.name }}
         fi
 
+    - name: Export environment variables
+      shell: bash
+      run: |
+        printenv | grep -v '^GITHUB_' > /tmp/container.env
+
     - name: Run new container
       shell: bash
       run: |
         docker run -d \
           --name ${{ inputs.name }} \
-          --env ${{ inputs.env }} \
+          --env-file /tmp/container.env \
           -p ${{ inputs.port }} \
           -v ${{ inputs.volume }} \
           --restart unless-stopped \
