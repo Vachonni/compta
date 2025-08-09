@@ -90,3 +90,7 @@ jobs:
 
       - name: Test API endpoint
         run: bash scripts/test-sql.sh ${{ steps.port.outputs.number }} ${{ inputs.environment == 'staging' && 'dev_db' || 'prod_db' }}
+        env:
+          APP_ENV: ${{ inputs.environment }}
+          DOCKER_DATABASES_DIR: ${{ vars.DOCKER_DATABASES_DIR }}
+          LOCAL_DATABASES_DIR: ${{ vars.LOCAL_DATABASES_DIR }}
