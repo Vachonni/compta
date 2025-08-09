@@ -25,6 +25,9 @@ runs:
       run: |
         cd services/database
         uv run pytest
+      env:
+        LOCAL_DATABASES_DIR: ${{ vars.LOCAL_DATABASES_DIR }}
+        DOCKER_DATABASES_DIR: ${{ vars.DOCKER_DATABASES_DIR }}
 
 inputs:
   python-version:

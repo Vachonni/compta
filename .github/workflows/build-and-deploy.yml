@@ -38,10 +38,6 @@ jobs:
         uses: ./.github/actions/python-build-test
         with:
           python-version: '3.13'
-        env:
-          APP_ENV: ${{ env.APP_ENV }}
-          LOCAL_DATABASES_DIR: ${{ vars.LOCAL_DATABASES_DIR }}
-          DOCKER_DATABASES_DIR: ${{ vars.DOCKER_DATABASES_DIR }}
 
       - name: Build and Push Docker image
         uses: ./.github/actions/build-to-ghcr
