@@ -26,10 +26,16 @@ runs:
         cd services/database
         uv run pytest
       env:
-        LOCAL_DATABASES_DIR: ${{ vars.LOCAL_DATABASES_DIR }}
-        DOCKER_DATABASES_DIR: ${{ vars.DOCKER_DATABASES_DIR }}
+        LOCAL_DATABASES_DIR: ${{ inputs.local-databases-dir }}
+        DOCKER_DATABASES_DIR: ${{ inputs.docker-databases-dir }}
 
 inputs:
   python-version:
     description: 'Python version to use'
     required: true
+  local-databases-dir:
+    description: 'Local databases directory path'
+    required: false
+  docker-databases-dir:
+    description: 'Docker databases directory path'
+    required: false
