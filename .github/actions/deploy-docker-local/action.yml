@@ -46,6 +46,14 @@ runs:
           docker rm ${{ inputs.name }}
         fi
 
+    - name: echo env var
+      shell: bash
+        run: |
+          echo "APP_ENV=$APP_ENV"
+          echo "LOCAL_DATABASES_DIR=$LOCAL_DATABASES_DIR"
+          echo "DOCKER_DATABASES_DIR=$DOCKER_DATABASES_DIR"
+      
+
     - name: Run new container
       shell: bash
       run: |
