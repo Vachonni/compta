@@ -48,7 +48,7 @@ runs:
 
     - name: echo env var
       shell: bash
-        run: |
+      run: |
           echo "APP_ENV=$APP_ENV"
           echo "LOCAL_DATABASES_DIR=$LOCAL_DATABASES_DIR"
           echo "DOCKER_DATABASES_DIR=$DOCKER_DATABASES_DIR"
