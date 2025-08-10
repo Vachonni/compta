@@ -73,6 +73,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           github_actor: ${{ github.actor }}
         env:
+          APP_ENV: ${{ env.APP_ENV }}
           LOCAL_DATABASES_DIR: ${{ vars.LOCAL_DATABASES_DIR }}
           DOCKER_DATABASES_DIR: ${{ vars.DOCKER_DATABASES_DIR }}
 
@@ -90,6 +91,3 @@ jobs:
 
       - name: Test API endpoint
         run: bash scripts/test-sql.sh ${{ steps.port.outputs.number }} ${{ inputs.environment == 'staging' && 'dev_db' || 'prod_db' }}
-        env:
-          DOCKER_DATABASES_DIR: ${{ vars.DOCKER_DATABASES_DIR }}
-          LOCAL_DATABASES_DIR: ${{ vars.LOCAL_DATABASES_DIR }}
