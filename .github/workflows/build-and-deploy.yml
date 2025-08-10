@@ -74,7 +74,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           github_actor: ${{ github.actor }}
         env:
-          APP_ENV: ${{ env.APP_ENV }}
+          APP_ENV: ${{ inputs.environment }}
           LOCAL_DATABASES_DIR: ${{ vars.LOCAL_DATABASES_DIR }}
           DOCKER_DATABASES_DIR: ${{ vars.DOCKER_DATABASES_DIR }}
 
