@@ -31,8 +31,7 @@ def test_env_variables_are_loaded(monkeypatch: MonkeyPatch) -> None:
     assert settings.SERVICE_NAME == "database"
     assert settings.app_env == AppEnvEnum.DEV
     assert settings.log_level == "DEBUG"
-    assert settings.databases_dir == settings.DATABASES_DIR_DOCKER
-    assert settings.db_path == Path(settings.databases_dir) / "compta"
+    assert settings.db_path == Path(settings.DOCKER_DATABASES_DIR)
     assert settings.sqlite_path == settings.db_path / "SQL" / "dev.db"
     assert (
         settings.excel_path == settings.blob_path / "Legacy" / "REVOLUT AVRIL 2025.xlsx"
@@ -72,23 +71,6 @@ def test_invalid_app_env_raises(monkeypatch: MonkeyPatch, invalid_env: str) -> N
         _ = settings_mod.database_settings
 
 
-def test_databases_dir_property(monkeypatch: MonkeyPatch) -> None:
-    """Should return correct databases directory based on environment."""
-    # Test LOCAL environment
-    monkeypatch.setenv("APP_ENV", "local")
-    reload(settings_mod)
-    settings = settings_mod.database_settings
-    assert settings.databases_dir == settings.DATABASES_DIR_LOCAL
-    assert "/Users/nicholasvachon/Databases" in settings.databases_dir
-
-    # Test non-LOCAL environment (DEV)
-    monkeypatch.setenv("APP_ENV", "dev")
-    reload(settings_mod)
-    settings = settings_mod.database_settings
-    assert settings.databases_dir == settings.DATABASES_DIR_DOCKER
-    assert "/app/DatabasesMount" in settings.databases_dir
-
-
 def test_log_level_property(monkeypatch: MonkeyPatch) -> None:
     """Should return correct log level based on environment."""
     # Test PROD environment
@@ -115,7 +97,7 @@ def test_db_path_property(monkeypatch: MonkeyPatch) -> None:
     monkeypatch.setenv("APP_ENV", "local")
     reload(settings_mod)
     settings = settings_mod.database_settings
-    expected_path = Path(settings.databases_dir) / "compta"
+    expected_path = Path(settings.LOCAL_DATABASES_DIR)
     assert settings.db_path == expected_path
     assert settings.db_path.name == "compta"
 
@@ -176,7 +158,7 @@ def test_property_paths_consistency(monkeypatch: MonkeyPatch) -> None:
     settings = settings_mod.database_settings
 
     # Verify path hierarchy consistency
-    assert settings.db_path == Path(settings.databases_dir) / "compta"
+    assert settings.db_path == Path(settings.DOCKER_DATABASES_DIR)
     assert settings.blob_path.parent.parent == settings.db_path
     assert settings.sqlite_path.parent.parent == settings.db_path
     assert settings.excel_path.parent.parent == settings.blob_path

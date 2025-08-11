@@ -11,9 +11,6 @@ inputs:
   port:
     description: 'Port mapping (host:container)'
     required: true
-  env:
-    description: 'Environment variable string (e.g. APP_ENV=prod)'
-    required: true
   volume:
     description: 'Volume mapping (host:container)'
     required: true
@@ -49,12 +46,22 @@ runs:
           docker rm ${{ inputs.name }}
         fi
 
+    - name: echo env var
+      shell: bash
+      run: |
+          echo "APP_ENV=$APP_ENV"
+          echo "LOCAL_DATABASES_DIR=$LOCAL_DATABASES_DIR"
+          echo "DOCKER_DATABASES_DIR=$DOCKER_DATABASES_DIR"
+      
+
     - name: Run new container
       shell: bash
       run: |
         docker run -d \
           --name ${{ inputs.name }} \
-          --env ${{ inputs.env }} \
+          -e APP_ENV \
+          -e LOCAL_DATABASES_DIR \
+          -e DOCKER_DATABASES_DIR \
           -p ${{ inputs.port }} \
           -v ${{ inputs.volume }} \
           --restart unless-stopped \

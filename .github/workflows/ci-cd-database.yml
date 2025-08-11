@@ -6,7 +6,7 @@ on:
     branches: [staging, main]
     paths:
       - 'services/database/**'
-      - '.github/workflows/ci-cd-database.yml'
+      - '.github/workflows/**'
 
 jobs:
   # Staging environment (always runs on staging branch)
@@ -19,17 +19,6 @@ jobs:
       port: "8005:8000"
       container_name: compta-data-app-staging
 
-  # Production environment for staging branch (runs after staging)
-  production-staging:
-    if: github.ref == 'refs/heads/staging'
-    needs: staging
-    uses: ./.github/workflows/build-and-deploy.yml
-    with:
-      environment: prod
-      image_tag: prod
-      port: "8009:8000"
-      container_name: compta-data-app-prod
-
   # Production environment for main branch (runs immediately)
   production-main:
     if: github.ref == 'refs/heads/main'
@@ -39,3 +28,4 @@ jobs:
       image_tag: prod
       port: "8009:8000"
       container_name: compta-data-app-prod
+      

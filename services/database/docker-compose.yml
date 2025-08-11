@@ -7,6 +7,6 @@ services:
     ports:
       - "8001:8000"
     volumes:
-      - /Users/nicholasvachon/Databases:/app/DatabasesMount
+      - ${LOCAL_DATABASES_DIR}:${DOCKER_DATABASES_DIR}
     env_file:
       - .env.dev
