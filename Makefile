@@ -19,7 +19,7 @@ help:
 
 run-runner: # Run the GitHub Actions self-hosted runner
 	~/actions-runner/run.sh
-	# Think about service management when serious production with ~/actions-runner/.svc.sh install and ~/actions-runner/.svc.sh start. Details with ~/actions-runner/.svc.sh help
+	# Think about service management when serious production with ~/actions-runner/svc.sh install and ~/actions-runner/svc.sh start. Details with ~/actions-runner/svc.sh help
 
 database-run-app:
 	$(MAKE) -C $(DATABASE_DIR) run-app
