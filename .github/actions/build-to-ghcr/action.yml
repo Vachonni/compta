@@ -10,9 +10,6 @@ inputs:
   build_context:
     description: 'Build context (directory)'
     required: true
-  build_args:
-    description: 'Build arguments (e.g. APP_ENV=prod)'
-    required: false
   github_token:
     description: 'GitHub token for registry login'
     required: true
@@ -29,11 +26,7 @@ runs:
     - name: Build Docker image
       shell: bash
       run: |
-        if [ -n "${{ inputs.build_args }}" ]; then \
-          docker build ${{ inputs.build_args }} -t ${{ inputs.image }}${{ inputs.image_extra && format(' -t {0}', inputs.image_extra) || '' }} ${{ inputs.build_context }}; \
-        else \
-          docker build -t ${{ inputs.image }}${{ inputs.image_extra && format(' -t {0}', inputs.image_extra) || '' }} ${{ inputs.build_context }}; \
-        fi
+        docker build -t ${{ inputs.image }}${{ inputs.image_extra && format(' -t {0}', inputs.image_extra) || '' }} ${{ inputs.build_context }}
     - name: Push Docker image to GHCR
       shell: bash
       run: |

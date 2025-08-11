@@ -15,8 +15,13 @@ db.sqlite3-journal
 
 # Environment variables
 .env*
+!.env.env.example
 !.env.example
 
 # macOS system files
 .DS_Store
 .env.shared
+
+# Test coverage
+.coverage
+.coverage.*

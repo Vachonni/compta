@@ -5,7 +5,7 @@ set -e
 PORT=${1:-8005}
 TEST_WORD=${2:-dev_db}
 
-RESPONSE=$(curl -sSf -X POST http://mbpnv.local:$PORT/execute_sql \
+RESPONSE=$(curl -sSf -X POST http://localhost:$PORT/execute_sql \
   -H "Content-Type: application/json" \
   -d '{"query": "SELECT * FROM transactions LIMIT 1;"}')
 echo "Response: $RESPONSE"

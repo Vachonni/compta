@@ -1,4 +1,3 @@
-version: "3.9"
 services:
   compa-data-app:
     image: compa-data-app:dev
@@ -8,6 +7,6 @@ services:
     ports:
       - "8001:8000"
     volumes:
-      - /Users/nicholas/Databases:/app/DatabasesMount
+      - ${LOCAL_DATABASES_DIR}:${DOCKER_DATABASES_DIR}
     env_file:
       - .env.dev

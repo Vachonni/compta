@@ -14,12 +14,21 @@ curl -Ls https://astral.sh/uv/install.sh | bash
 More info at:
 [https://github.com/astral-sh/uv#installation](https://github.com/astral-sh/uv#installation)
 
+
 ### virtual environment
-To create a virtual environment and install all dependencies:
+To create a virtual environment and install dependencies for production:
 
 ```sh
 uv sync
 ```
+
+To install all dependencies including development dependencies (for testing, linting, etc.), use:
+
+```sh
+uv sync --dev
+```
+
+This will ensure your environment includes everything needed for both running and developing the project.
 
 ## Running the FastAPI App
 
@@ -51,6 +60,24 @@ curl -X POST http://<COMPUTER_IP OR COMPUTER_NAME.local>:8000/execute_sql \
   -H "Content-Type: application/json" \
   -d '{"query": "SELECT * FROM transactions LIMIT 2;"}'
 ```
+
+### Example: Upload a File with curl
+
+
+To upload a file with the `/upload_file` endpoint, use the following command:
+
+```bash
+curl -X POST http://<COMPUTER_IP OR COMPUTER_NAME.local>:8000/upload_file \
+  -F "owner=N" \
+  -F "year=2025" \
+  -F "month=8" \
+  -F "bank=Revolut" \
+  -F "file=@<COMPLETE PATH TO FILE>" \
+  -F "overwrite=false"
+```
+
+Replace `<COMPUTER_IP OR COMPUTER_NAME.local>` and `<COMPLETE PATH TO FILE>` with your actual server address and the complete path to the file you want to upload. Adjust the form fields as needed for your use case.
+
 
 ## Port Number Convention by Environment
 

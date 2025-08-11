@@ -2,7 +2,7 @@
 # Usage: ./health-check.sh <PORT>
 PORT=${1:-8005}
 for i in {1..10}; do
-  if curl -sSf http://mbpnv.local:$PORT/healthz; then
+  if curl -sSf http://localhost:$PORT/healthz; then
     echo "API is up!"
     exit 0
   fi

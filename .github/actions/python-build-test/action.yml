@@ -26,12 +26,9 @@ runs:
         cd services/database
         uv run pytest
       env:
-        APP_ENV: ${{ inputs.app-env }}
+        UV_CACHE_DIR: ${{ runner.temp }}/uv-cache
 
 inputs:
   python-version:
     description: 'Python version to use'
-    required: true
-  app-env:
-    description: 'APP_ENV environment variable'
     required: true
