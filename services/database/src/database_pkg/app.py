@@ -16,6 +16,41 @@ async def healthz():
     return {"status": "ok"}
 
 
+@app.middleware("http")
+async def catch_dependency_errors(request, call_next):
+    try:
+        return await call_next(request)
+    except Exception as e:
+        return JSONResponse(status_code=400, content={"detail": str(e)})
+
+
+@app.post(
+    "/execute_sql",
+    summary="Execute a SQL query",
+    description="""
+    Execute a raw SQL query against the database. For SELECT queries, returns the result rows as a list of dicts. For other queries, returns the number of affected rows.
+    """,
+)
+async def execute_sql(
+    sql_query: SQLQuery,
+    conn=Depends(get_db_connection),
+):
+    try:
+        cursor = conn.cursor()
+        cursor.execute(sql_query.query)
+        if sql_query.query.strip().lower().startswith("select"):
+            rows = cursor.fetchall()
+            result = [dict(row) for row in rows]
+        else:
+            conn.commit()
+            result = {"rows_affected": cursor.rowcount}
+        cursor.close()
+        conn.close()
+        return {"result": result}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 @app.post(
     "/upload_file",
     summary="Upload a bank statement file",
@@ -75,38 +110,3 @@ async def upload_file(
     with save_path.open("wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
     return {"detail": "File uploaded successfully.", "path": str(save_path)}
-
-
-@app.post(
-    "/execute_sql",
-    summary="Execute a SQL query",
-    description="""
-    Execute a raw SQL query against the database. For SELECT queries, returns the result rows as a list of dicts. For other queries, returns the number of affected rows.
-    """,
-)
-async def execute_sql(
-    sql_query: SQLQuery,
-    conn=Depends(get_db_connection),
-):
-    try:
-        cursor = conn.cursor()
-        cursor.execute(sql_query.query)
-        if sql_query.query.strip().lower().startswith("select"):
-            rows = cursor.fetchall()
-            result = [dict(row) for row in rows]
-        else:
-            conn.commit()
-            result = {"rows_affected": cursor.rowcount}
-        cursor.close()
-        conn.close()
-        return {"result": result}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-
-@app.middleware("http")
-async def catch_dependency_errors(request, call_next):
-    try:
-        return await call_next(request)
-    except Exception as e:
-        return JSONResponse(status_code=400, content={"detail": str(e)})
