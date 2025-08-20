@@ -3,6 +3,8 @@ from pathlib import Path
 from fastapi import Depends, FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.responses import JSONResponse
 
+from fastapi_mcp import FastApiMCP
+
 from database_pkg.utils import get_db_connection, get_extension
 from database_pkg.config.settings import database_settings
 from database_pkg.config.schemas import SQLQuery, OwnerEnum, BankEnum, ExtensionEnum
@@ -14,6 +16,53 @@ app = FastAPI()
 @app.get("/healthz")
 async def healthz():
     return {"status": "ok"}
+
+
+@app.middleware("http")
+async def catch_dependency_errors(request, call_next):
+    try:
+        return await call_next(request)
+    except Exception as e:
+        return JSONResponse(status_code=400, content={"detail": str(e)})
+
+
+@app.post(
+    "/execute_sql",
+    summary="Execute a SQL query",
+    description="""
+    Execute a raw SQL query against the database. For SELECT queries, returns the result rows as a list of dicts. For other queries, returns the number of affected rows.
+    CREATE TABLE "transactions" (
+        "Type" TEXT,
+        "Product" TEXT,
+        "Started Date" TIMESTAMP,
+        "Completed Date" TIMESTAMP,
+        "Description" TEXT,
+        "Amount" REAL,
+        "Fee" REAL,
+        "Currency" TEXT,
+        "QUI" TEXT,
+        "COMMENT" TEXT
+    )
+    """,
+)
+async def execute_sql(
+    sql_query: SQLQuery,
+    conn=Depends(get_db_connection),
+):
+    try:
+        cursor = conn.cursor()
+        cursor.execute(sql_query.query)
+        if sql_query.query.strip().lower().startswith("select"):
+            rows = cursor.fetchall()
+            result = [dict(row) for row in rows]
+        else:
+            conn.commit()
+            result = {"rows_affected": cursor.rowcount}
+        cursor.close()
+        conn.close()
+        return {"result": result}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @app.post(
@@ -77,36 +126,6 @@ async def upload_file(
     return {"detail": "File uploaded successfully.", "path": str(save_path)}
 
 
-@app.post(
-    "/execute_sql",
-    summary="Execute a SQL query",
-    description="""
-    Execute a raw SQL query against the database. For SELECT queries, returns the result rows as a list of dicts. For other queries, returns the number of affected rows.
-    """,
-)
-async def execute_sql(
-    sql_query: SQLQuery,
-    conn=Depends(get_db_connection),
-):
-    try:
-        cursor = conn.cursor()
-        cursor.execute(sql_query.query)
-        if sql_query.query.strip().lower().startswith("select"):
-            rows = cursor.fetchall()
-            result = [dict(row) for row in rows]
-        else:
-            conn.commit()
-            result = {"rows_affected": cursor.rowcount}
-        cursor.close()
-        conn.close()
-        return {"result": result}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-
-@app.middleware("http")
-async def catch_dependency_errors(request, call_next):
-    try:
-        return await call_next(request)
-    except Exception as e:
-        return JSONResponse(status_code=400, content={"detail": str(e)})
+# Integrate MCP server
+mcp = FastApiMCP(app)
+mcp.mount_http()
