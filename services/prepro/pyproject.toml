@@ -5,6 +5,7 @@ requires = ["hatchling >= 1.26"]
 [project]
 authors = [{name = "nicholas", email = "nicholasvachon@hotmail.com"}]
 dependencies = [
+  "apache-airflow>=3.0.4",
   "pydantic>=2.11.7",
   "pydantic-settings>=2.10.1",
 ]
