@@ -1,0 +1,26 @@
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# Local virtual environment
+.venv/
+
+# SQLite database
+db.sqlite3
+db.sqlite3-journal
+
+# VS Code settings
+.vscode/
+
+# Environment variables
+.env*
+!.env.example
+
+# macOS system files
+.DS_Store
+.env.shared
+
+# Test coverage
+.coverage
+.coverage.*

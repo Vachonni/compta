@@ -1,0 +1,13 @@
+version: "3.9"
+services:
+  prepro:
+    image: prepro:dev
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8000"
+    # volumes:
+    #   - /Users/nicholas/Databases:/app/DatabasesMount
+    env_file:
+      - .env.dev

@@ -1,0 +1,23 @@
+[build-system]
+build-backend = "hatchling.build"
+requires = ["hatchling >= 1.26"]
+
+[project]
+authors = [{name = "nicholas", email = "nicholasvachon@hotmail.com"}]
+dependencies = [
+  "pydantic>=2.11.7",
+  "pydantic-settings>=2.10.1",
+]
+description = "Processing data. From extracted reports to standardized transactions table."
+name = "prepro"
+requires-python = ">=3.13"
+version = "0.1.0"
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.4.1",
+  "pytest-cov>=6.2.1",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/prepro"]
