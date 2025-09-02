@@ -1,5 +1,5 @@
 # Stage 1: Get uv from official image
-FROM ghcr.io/astral-sh/uv:latest AS uv-installer
+FROM ghcr.io/astral-sh/uv:0.8.14 AS uv-installer
 
 # Stage 2: Final runtime image
 FROM python:3.13-slim
@@ -17,7 +17,7 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync
 
 # Copy source code after dependencies for better caching
-COPY src/prepro ./prepro
+COPY src/prepro ./src/prepro
 
 # Create a non-root user
 RUN useradd -m appuser \
@@ -27,7 +27,8 @@ RUN useradd -m appuser \
 USER appuser
 
 # Expose port (adjust if your app uses a different port)
-EXPOSE 8000
+# EXPOSE 8000
 
-# Run (something like: CMD ["uv", "run", ..........])
+# Run (something like: CMD or ENTRYPOINT ["uv", "run", ..........])
+ENTRYPOINT ["uv", "run", "python", "src/prepro/pipeline.py"]
 
