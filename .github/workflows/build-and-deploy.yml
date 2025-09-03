@@ -104,3 +104,17 @@ jobs:
           CLEANUP: "true"
           APP_ENV: ${{ vars.APP_ENV }}
         run: bash scripts/test-upload.sh G 1950 1 BNP /tmp/ci-upload.csv true
+
+      - name: Test extract endpoint (absolute path returned by upload)
+        env:
+          APP_ENV: ${{ vars.APP_ENV }}
+        run: |
+          # Re-upload to capture JSON path (since previous step cleaned up host file)
+          RESPONSE=$(curl -sSf -X POST "http://localhost:${{ steps.port.outputs.number }}/upload_file" \
+            -F owner=G -F year=1950 -F month=1 -F bank=BNP -F file=@/tmp/ci-upload.csv -F overwrite=true)
+          PATH_ABS=$(echo "$RESPONSE" | jq -r '.path')
+          echo "Upload path: $PATH_ABS"
+          # Absolute inside blob root
+          bash scripts/test-extract.sh --path "$PATH_ABS"
+          # /blob/ synthesized form
+          bash scripts/test-extract.sh --path "$PATH_ABS" --blob-form
