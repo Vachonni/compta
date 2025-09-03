@@ -6,8 +6,10 @@ requires = ["hatchling >= 1.26"]
 authors = [{name = "nicholas", email = "nicholasvachon@hotmail.com"}]
 dependencies = [
   "apache-airflow>=3.0.4",
+  "pandas>=2.3.2",
   "pydantic>=2.11.7",
   "pydantic-settings>=2.10.1",
+  "requests>=2.32.5",
 ]
 description = "Processing data. From extracted reports to standardized transactions table."
 name = "prepro"
