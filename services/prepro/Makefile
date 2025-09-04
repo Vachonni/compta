@@ -8,7 +8,7 @@
 # GitHub Container Registry path (without image name or tag)
 GITHUB_REGISTRY=prepro
 
-.PHONY: help pytest docker-build-dev docker-run-dev docker-up-dev docker-run-staging docker-run-prod 
+.PHONY: help pytest docker-build-dev docker-run-dev docker-up-dev docker-run-clean docker-run-extract docker-run-staging docker-run-prod 
 
 help:
 	@echo "Available targets:"
@@ -16,6 +16,8 @@ help:
 	@echo "  docker-build-dev  Build the dev Docker image only (does not run)."
 	@echo "  docker-run-dev    Run the dev Docker container (does not rebuild)."
 	@echo "  docker-up-dev     Build and run the dev Docker container."
+	@echo "  docker-run-clean  Run the 'clean' step in the dev Docker container and remove it after."
+	@echo "  docker-run-extract  Run the 'extract' step in the dev Docker container and remove it after."
 	@echo "  docker-run-staging  Pull and run the staging Docker image with .env.staging."
 	@echo "  docker-run-prod     Pull and run the prod Docker image with .env.prod."
 
@@ -24,26 +26,27 @@ pytest:
 
 docker-build-dev: 
 	# Build the Docker image for development
-	docker-compose build prepro
+	docker compose build prepro
 docker-run-dev: 
-	# Note: This will not rebuild the image, use `docker-build-dev` first if
-	docker-compose up --no-build prepro
+	# Note: This will not rebuild the image, use `docker-build-dev` first.
+	# Note: (--no-build is not necessary)
+	docker compose up --no-build prepro
 docker-up-dev: 
-	# This will build the image and start the container
-	docker-compose up --build prepro
+	# This will build the image & start the container
+	docker compose up --build prepro
+docker-run-clean: 
+	# Note: This will not rebuild the image, but run a container and delete it after with .env and .env.dev
+	docker compose run --rm prepro --step clean
+docker-run-extract:
+	# Note: This will not rebuild the image, but run a container and delete it after with .env and .env.dev
+	docker compose run --rm prepro --step extract --file_path /blob/dev/raw/2025/8/N_Revolut.csv
 
-docker-run-staging: 
-	docker pull $(GITHUB_REGISTRY)/prepro:staging
-	docker run \
-	  --env-file .env.staging \
-	  -p 8005:8000 \
-# 	  -v /Users/nicholas/Databases:/app/DatabasesMount \
-	  $(GITHUB_REGISTRY)/prepro:staging
+# TO DO: INCLUDE ENV VARS 
+# docker-run-staging: 
+# 	docker pull $(GITHUB_REGISTRY)/prepro:staging
+# 	docker run $(GITHUB_REGISTRY)/prepro:staging
 
-docker-run-prod: 
-	docker pull $(GITHUB_REGISTRY)/prepro:prod
-	docker run \
-	  --env-file .env.prod \
-	  -p 8009:8000 \
-# 	  -v /Users/nicholas/Databases:/app/DatabasesMount \
-	  $(GITHUB_REGISTRY)/prepro:prod
+# docker-run-prod: 
+# 	docker pull $(GITHUB_REGISTRY)/prepro:prod
+# 	docker run $(GITHUB_REGISTRY)/prepro:prod
+ 

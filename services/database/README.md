@@ -25,7 +25,7 @@ uv sync
 To install all dependencies including development dependencies (for testing, linting, etc.), use:
 
 ```sh
-uv sync --dev
+uv sync --extra dev
 ```
 
 This will ensure your environment includes everything needed for both running and developing the project.
