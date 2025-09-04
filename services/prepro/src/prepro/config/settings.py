@@ -1,16 +1,9 @@
 """Settings for project prepro"""
 
-
-import os
 from prepro.config.schemas import AppEnvEnum
 
 from pydantic import Field
 from pydantic_settings import BaseSettings
-
-env_file: str = f".env.{os.getenv('APP_ENV', 'dev')}"
-
-
-
 
 
 class Settings(BaseSettings):
@@ -24,7 +17,7 @@ class Settings(BaseSettings):
     )  # Field necesary for pytest in Docker
 
     model_config = {
-        "env_file": env_file,
+        "env_file": ".env",
         "env_file_encoding": "utf-8",
     }
 
