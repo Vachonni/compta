@@ -1,15 +1,15 @@
 import argparse
 import os
 import requests
-
-from prepro.utils import logger
+import pandas as pd
+from prepro.utils import logger, adjust_columns
+from prepro.config import settings
 
 
 def extract(
+    databases_url: str,
     file_path: str,
-    base_url: str = "http://localhost:8001/extract_file",
-    out_dir: str = ".",
-) -> str:
+):
     """Download a file from the extraction service using a GET request with a
     URL-encoded `path` query parameter (equivalent to the curl -G --data-urlencode form).
 
@@ -24,46 +24,60 @@ def extract(
     if not file_path:
         raise ValueError("file_path must be provided to extract()")
 
+    base_url = f"{databases_url}/extract_file"
     logger.info(f"Requesting '{file_path}' from {base_url}...")
 
     resp = requests.get(base_url, params={"path": file_path}, stream=True)
     resp.raise_for_status()
 
     # Save to disk
-    filename = os.path.basename(file_path) or "downloaded_file"
-    out_path = os.path.join(out_dir, filename)
-    os.makedirs(out_dir, exist_ok=True)
-    with open(out_path, "wb") as out_f:
+    extracted_file = "extracted_" + os.path.basename(file_path)
+    with open(extracted_file, "wb") as out_f:
         for chunk in resp.iter_content(chunk_size=8192):
             if chunk:
                 out_f.write(chunk)
 
-    logger.info(f"Saved file to {out_path}")
-    return out_path
+    logger.info(f"Saved file to {extracted_file}")
 
 
-def transform(out_path: str):
-    """Load a saved file at `out_path` into a pandas DataFrame.
-
+def transform(file_path: str):
+    """Load a saved file at `file_path` into a pandas DataFrame.
     Supported formats: .csv, .xls, .xlsx
     """
-    if not os.path.exists(out_path):
-        raise FileNotFoundError(out_path)
 
-    # Lazily import pandas; let ImportError bubble if pandas isn't installed
-    import pandas as pd
+    file_name = os.path.basename(file_path)
+    extracted_file = "extracted_" + file_name
+    if not os.path.exists(extracted_file):
+        raise FileNotFoundError(extracted_file)
 
-    lower = out_path.lower()
-    if lower.endswith(".csv"):
-        df = pd.read_csv(out_path)
-        logger.info(df.head())
-        return
-    if lower.endswith((".xls", ".xlsx")):
-        df = pd.read_excel(out_path)
-        logger.info(df.head())
-        return
+    # Load DataFrame
+    if extracted_file.endswith(".csv"):
+        df = pd.read_csv(extracted_file)
+    elif extracted_file.endswith((".xls", ".xlsx")):
+        df = pd.read_excel(extracted_file)
+    else:
+        raise ValueError(
+            f"Unsupported file extension for DataFrame conversion: {file_path}"
+        )
 
-    raise ValueError(f"Unsupported file extension for DataFrame conversion: {out_path}")
+    # Adjust columns for standardization
+    df = adjust_columns(df, file_name)
+
+    # Save transformed DataFrame
+    transformed_file = f"transformed_{file_name}"
+    if transformed_file.endswith(".csv"):
+        df.to_csv(transformed_file, index=False)
+    elif transformed_file.endswith((".xls", ".xlsx")):
+        df.to_excel(transformed_file, index=False)
+    else:
+        raise ValueError(f"Unsupported file extension for saving: {transformed_file}")
+
+    logger.info(f"Transformed file saved to {transformed_file}")
+    logger.info(df.head())
+
+
+def load(file_path: str):
+    logger.info("Loading data in SQL database...")
 
 
 def clean():
@@ -82,11 +96,22 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--step",
-        choices=["clean", "normalize", "split", "load"],
+        choices=["clean", "normalize", "split", "extract", "transform", "load"],
         required=True,
         help="Preprocessing step to execute",
     )
-    parser.add_argument("--file_path", type=str, help="Path to the input file")
+    parser.add_argument(
+        "--databases_url",
+        type=str,
+        default="http://localhost:8001",
+        help="Base URL for the Databases service",
+    )
+    parser.add_argument(
+        "--file_path",
+        type=str,
+        default="/blob/dev/raw/2025/8/N_Revolut.csv",
+        help="File to extract from Databases' blob.",
+    )
     args = parser.parse_args()
 
     if args.step == "clean":
@@ -95,6 +120,9 @@ if __name__ == "__main__":
         normalize()
     elif args.step == "split":
         split()
+    elif args.step == "extract":
+        extract(args.databases_url, args.file_path)
+    elif args.step == "transform":
+        transform(args.file_path)
     elif args.step == "load":
-        data = extract(args.file_path)
-        transform(data)
+        load(args.file_path)

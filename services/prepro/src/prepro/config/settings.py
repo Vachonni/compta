@@ -10,7 +10,16 @@ class Settings(BaseSettings):
     """Settings for the database service."""
 
     # Fixed fields
-    FIXED_VAR: str = "fixed_var"
+    COLUMNS_NAME: list[str] = [
+        "Started Date",
+        "Completed Date",
+        "Type",
+        "Product",
+        "Description",
+        "Amount",
+        "Fee",
+        "Currency",
+    ]
     # Fields loaded from environment variables
     app_env: AppEnvEnum = Field(
         default=AppEnvEnum.DEV
