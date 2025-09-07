@@ -9,17 +9,19 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     """Settings for the database service."""
 
-    # Fixed fields
-    COLUMNS_NAME: list[str] = [
-        "Started Date",
-        "Completed Date",
-        "Type",
-        "Product",
-        "Description",
-        "Amount",
-        "Fee",
-        "Currency",
-    ]
+    # Mapping of standardized columns to their possible equivalents (in various languages/providers)
+    COLUMN_EQUIVALENTS: dict[str, list[str]] = {
+        "Started Date": ["Started Date", "Date de début"],
+        "Completed Date": ["Completed Date", "Date de fin"],
+        "Type": ["Type"],
+        "Product": ["Product", "Produit"],
+        "Description": ["Description"],
+        "Amount": ["Amount", "Montant"],
+        "Fee": ["Fee", "Frais"],
+        "Currency": ["Currency", "Devise"],
+        "State": ["State", "État"],
+        "Balance": ["Balance", "Solde"],
+    }
     # Fields loaded from environment variables
     app_env: AppEnvEnum = Field(
         default=AppEnvEnum.DEV

@@ -2,8 +2,12 @@ import argparse
 import os
 import requests
 import pandas as pd
-from prepro.utils import logger, adjust_columns
-from prepro.config import settings
+from prepro.utils import (
+    logger,
+    map_columns_to_standard,
+    adjust_columns,
+    load_to_postgres,
+)
 
 
 def extract(
@@ -60,7 +64,10 @@ def transform(file_path: str):
             f"Unsupported file extension for DataFrame conversion: {file_path}"
         )
 
-    # Adjust columns for standardization
+    # Map columns to standard names
+    df = map_columns_to_standard(df)
+
+    # Adjust columns for DB standardization
     df = adjust_columns(df, file_name)
 
     # Save transformed DataFrame
@@ -79,24 +86,28 @@ def transform(file_path: str):
 def load(file_path: str):
     logger.info("Loading data in SQL database...")
 
+    file_name = os.path.basename(file_path)
+    extracted_file = f"extracted_{file_name}"
+    transformed_file = f"transformed_{file_name}"
+    if not os.path.exists(transformed_file):
+        logger.error(f"Transformed file not found: {transformed_file}")
+        return
+    load_to_postgres(transformed_file)
 
-def clean():
-    logger.info("Cleaning raw data...")
-
-
-def normalize():
-    logger.info("Normalizing features...")
-
-
-def split():
-    logger.info("Splitting dataset...")
+    # Delete temporary files created after loading
+    for f in [extracted_file, transformed_file]:
+        if os.path.exists(f):
+            os.remove(f)
+            logger.info(f"Deleted file: {f}")
+        else:
+            logger.info(f"File not found, skipping delete: {f}")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--step",
-        choices=["clean", "normalize", "split", "extract", "transform", "load"],
+        choices=["etl", "extract", "transform", "load"],
         required=True,
         help="Preprocessing step to execute",
     )
@@ -114,12 +125,10 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    if args.step == "clean":
-        clean()
-    elif args.step == "normalize":
-        normalize()
-    elif args.step == "split":
-        split()
+    if args.step == "etl":
+        extract(args.databases_url, args.file_path)
+        transform(args.file_path)
+        load(args.file_path)
     elif args.step == "extract":
         extract(args.databases_url, args.file_path)
     elif args.step == "transform":
