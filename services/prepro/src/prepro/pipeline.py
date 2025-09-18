@@ -14,8 +14,16 @@ def extract(
     databases_url: str,
     file_path: str,
 ):
-    """Download a file from the extraction service using a GET request with a
-    URL-encoded `path` query parameter (equivalent to the curl -G --data-urlencode form).
+    """Download a file from the extraction service and save it locally.
+
+    This function issues an HTTP GET to ``{databases_url}/extract_file`` with
+    a URL-encoded ``path`` query parameter (equivalent to curl -G
+    --data-urlencode). The response body is streamed to disk and saved as
+    ``extracted_<basename(file_path)>``.
+
+    Note: this function performs side-effects (writes a file and logs) and
+    does not return a value. On HTTP errors ``requests.HTTPError`` will be
+    raised by ``resp.raise_for_status()``.
 
     Example curl equivalent:
       curl -G \
@@ -23,7 +31,9 @@ def extract(
         http://localhost:8001/extract_file \
         -o N_Revolut.csv
 
-    Returns the path to the saved file on success.
+    Raises:
+        ValueError: if ``file_path`` is falsy.
+        requests.HTTPError: if the GET request returns a non-2xx status.
     """
     if not file_path:
         raise ValueError("file_path must be provided to extract()")
@@ -45,8 +55,21 @@ def extract(
 
 
 def transform(file_path: str):
-    """Load a saved file at `file_path` into a pandas DataFrame.
-    Supported formats: .csv, .xls, .xlsx
+    """Load a previously extracted file, normalize columns and save a transformed file.
+
+    Expects a file previously downloaded by :func:`extract` and saved as
+    ``extracted_<basename(file_path)>``. The file is read into a pandas
+    DataFrame (supports ``.csv``, ``.xls``, ``.xlsx``), then column names are
+    mapped to standard names via :func:`map_columns_to_standard` and adjusted
+    for database storage via :func:`adjust_columns`.
+
+    The transformed DataFrame is written to ``transformed_<basename(file_path)>``
+    and a small preview is logged. This function performs side-effects and
+    does not return the DataFrame.
+
+    Raises:
+        FileNotFoundError: if the expected extracted file does not exist.
+        ValueError: if the file extension is unsupported for reading or writing.
     """
 
     file_name = os.path.basename(file_path)
@@ -84,6 +107,15 @@ def transform(file_path: str):
 
 
 def load(file_path: str):
+    """Load a transformed file into Postgres and clean up temporary files.
+
+    Looks for ``transformed_<basename(file_path)>`` and, if present, calls
+    :func:`load_to_postgres` to load it into the database. After a successful
+    load this function attempts to delete the temporary files
+    ``extracted_<basename>`` and ``transformed_<basename>``. If the transformed
+    file is missing the function logs an error and returns early.
+    """
+
     logger.info("Loading data in SQL database...")
 
     file_name = os.path.basename(file_path)

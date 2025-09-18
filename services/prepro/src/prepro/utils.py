@@ -13,8 +13,8 @@ logger = logging.getLogger(__name__)
 
 def map_columns_to_standard(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Rename columns in the DataFrame to their standardized names using COLUMN_EQUIVALENTS from settings.
-    Columns not in the mapping are left unchanged.
+    Rename columns in the DataFrame to standardized names based on COLUMN_EQUIVALENTS from settings.
+    Columns without a mapping are dropped, and a warning is logged for each dropped column.
     """
     mapping = {}
     unmapped = []
@@ -39,10 +39,10 @@ def map_columns_to_standard(df: pd.DataFrame) -> pd.DataFrame:
 
 def adjust_columns(df: pd.DataFrame, file_name: str) -> pd.DataFrame:
     """
-    Adjust columns for standardization:
-    - Add 'Executor' column with first letter of file_name
-    - Remove 'Balance' column if it exists
-    - Keep only rows where 'State' == 'COMPLETED', then remove column 'State'
+    Standardize and filter DataFrame columns for further processing.
+    - Adds an 'Executor' column using the first letter of the file name.
+    - Removes the 'Balance' column if present.
+    - Filters rows to keep only those where 'State' is 'COMPLETED' or 'TERMINÉ', then drops the 'State' column.
     """
     df["Executor"] = file_name[0] if file_name else ""
     if "Balance" in df.columns:
@@ -55,14 +55,15 @@ def adjust_columns(df: pd.DataFrame, file_name: str) -> pd.DataFrame:
 
 def load_to_postgres(transformed_file: str):
     """
-    Load the transformed file into the Postgres 'transactions' table with upsert logic.
-    Upsert is based on ("Started Date", "Description", "Amount").
+    Load a transformed file into the Postgres 'transactions' table with upsert logic.
+    The upsert is based on ("Started Date", "Completed Date", "Description", "Amount").
+    If a row with the same key exists, update relevant fields; otherwise, insert a new row.
     """
-    # Database connection string (adjust as needed)
+    # Establish database connection (update db_url as needed for your environment)
     db_url = "postgresql://postgres@localhost/compta_perso"
     engine = create_engine(db_url)
 
-    # Load DataFrame
+    # Load the DataFrame from the provided file
     if transformed_file.endswith(".csv"):
         df = pd.read_csv(transformed_file)
     elif transformed_file.endswith((".xls", ".xlsx")):
@@ -70,7 +71,7 @@ def load_to_postgres(transformed_file: str):
     else:
         raise ValueError(f"Unsupported file extension for loading: {transformed_file}")
 
-    # Upsert rows
+    # Insert or update each row in the transactions table
     with engine.begin() as conn:
         for _, row in df.iterrows():
             stmt = text(
