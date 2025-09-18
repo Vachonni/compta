@@ -26,6 +26,8 @@ class Settings(BaseSettings):
     app_env: AppEnvEnum = Field(
         default=AppEnvEnum.DEV
     )  # Field necesary for pytest in Docker
+    sql_url: str
+    blob_url: str
 
     model_config = {
         "env_file": ".env",
@@ -48,3 +50,5 @@ if __name__ == "__main__":
     print("Configuration:")
     print(f"Environment: {settings.app_env.value}")
     print(f"Log Level: {settings.log_level}")
+    print(f"SQL URL: {settings.sql_url}")
+    print(f"Blob URL: {settings.blob_url}")

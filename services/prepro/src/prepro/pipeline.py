@@ -8,6 +8,7 @@ from prepro.utils import (
     adjust_columns,
     load_to_postgres,
 )
+from prepro.config.settings import settings
 
 
 def extract(
@@ -28,7 +29,7 @@ def extract(
     Example curl equivalent:
       curl -G \
         --data-urlencode "path=/blob/dev/raw/2025/8/N_Revolut.csv" \
-        http://localhost:8001/extract_file \
+        BLOB_URL/extract_file \
         -o N_Revolut.csv
 
     Raises:
@@ -146,7 +147,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--databases_url",
         type=str,
-        default="http://localhost:8001",
+        default=settings.blob_url,
         help="Base URL for the Databases service",
     )
     parser.add_argument(

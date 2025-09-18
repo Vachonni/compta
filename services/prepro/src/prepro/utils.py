@@ -59,9 +59,8 @@ def load_to_postgres(transformed_file: str):
     The upsert is based on ("Started Date", "Completed Date", "Description", "Amount").
     If a row with the same key exists, update relevant fields; otherwise, insert a new row.
     """
-    # Establish database connection (update db_url as needed for your environment)
-    db_url = "postgresql://postgres@localhost/compta_perso"
-    engine = create_engine(db_url)
+    # Establish SQL database connection
+    engine = create_engine(settings.sql_url)
 
     # Load the DataFrame from the provided file
     if transformed_file.endswith(".csv"):
