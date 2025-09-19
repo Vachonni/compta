@@ -7,6 +7,9 @@ services:
     # ports:
     #   - "8001:8000"
     # volumes:
-    #   - /Users/nicholas/Databases:/app/DatabasesMount
-    env_file:
-      - .env
+    #   - prepro_root:/app/src/prepro
+    # env_file:
+    #   - .env
+
+    # volumes:
+    #   prepro_root:

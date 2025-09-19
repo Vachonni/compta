@@ -13,22 +13,26 @@ COPY --from=uv-installer /uv /usr/local/bin/uv
 # Copy dependency files first for better layer caching
 COPY pyproject.toml uv.lock ./
 
-# Install dependencies first (before copying source code)
-RUN uv sync
+# Install dependencies as root (this keeps .venv owned by root for security)
+RUN uv sync --frozen
 
-# Copy source code after dependencies for better caching
+# Copy source code 
 COPY src/prepro ./src/prepro
 
-# Create a non-root user
-RUN useradd -m appuser \
-    && chown -R appuser:appuser /app
+# Create a non-root user and set up proper permissions
+RUN useradd -m appuser && \
+    mkdir -p /app/tmp_etl && \
+    # Only give appuser ownership of tmp_etl (working directory)
+    chown -R appuser:appuser /app/tmp_etl && \
+    # Keep source code and .venv owned by root (read-only for security)
+    chmod -R 755 /app/src && \
+    chmod -R 755 /app/tmp_etl
 
 # Switch to non-root user
 USER appuser
 
-# Expose port (adjust if your app uses a different port)
-# EXPOSE 8000
+# Also set PYTHONPATH to ensure the prepro module can be found
+ENV PYTHONPATH=/app/src
 
-# Run (something like: CMD or ENTRYPOINT ["uv", "run", ..........])
-ENTRYPOINT ["uv", "run", "python", "src/prepro/pipeline.py"]
-
+# Use uv run with --no-sync to avoid trying to modify .venv at runtime
+ENTRYPOINT ["uv", "run", "--no-sync", "python", "src/prepro/pipeline.py"]
