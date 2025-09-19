@@ -8,8 +8,8 @@ services:
     #   - "8001:8000"
     # volumes:
     #   - prepro_root:/app/src/prepro
-    # env_file:
-    #   - .env
+    env_file:
+      - .env.dev
 
-    # volumes:
-    #   prepro_root:
+# volumes:
+#   prepro_root:
