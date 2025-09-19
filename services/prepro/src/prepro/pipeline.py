@@ -11,6 +11,11 @@ from prepro.utils import (
 from prepro.config.settings import settings
 
 
+# Create temporary directory for ETL files
+TMP_ETL_DIR = os.path.join(settings.root_dir, "tmp_etl")
+os.makedirs(TMP_ETL_DIR, exist_ok=True)
+
+
 def extract(
     databases_url: str,
     file_path: str,
@@ -47,12 +52,14 @@ def extract(
 
     # Save to disk
     extracted_file = "extracted_" + os.path.basename(file_path)
-    with open(extracted_file, "wb") as out_f:
+    extracted_file_path = os.path.join(TMP_ETL_DIR, extracted_file)
+
+    with open(extracted_file_path, "wb") as out_f:
         for chunk in resp.iter_content(chunk_size=8192):
             if chunk:
                 out_f.write(chunk)
 
-    logger.info(f"Saved file to {extracted_file}")
+    logger.info(f"Saved file to {extracted_file_path}")
 
 
 def transform(file_path: str):
@@ -75,14 +82,16 @@ def transform(file_path: str):
 
     file_name = os.path.basename(file_path)
     extracted_file = "extracted_" + file_name
-    if not os.path.exists(extracted_file):
-        raise FileNotFoundError(extracted_file)
+    extracted_file_path = os.path.join(TMP_ETL_DIR, extracted_file)
+
+    if not os.path.exists(extracted_file_path):
+        raise FileNotFoundError(extracted_file_path)
 
     # Load DataFrame
-    if extracted_file.endswith(".csv"):
-        df = pd.read_csv(extracted_file)
-    elif extracted_file.endswith((".xls", ".xlsx")):
-        df = pd.read_excel(extracted_file)
+    if extracted_file_path.endswith(".csv"):
+        df = pd.read_csv(extracted_file_path)
+    elif extracted_file_path.endswith((".xls", ".xlsx")):
+        df = pd.read_excel(extracted_file_path)
     else:
         raise ValueError(
             f"Unsupported file extension for DataFrame conversion: {file_path}"
@@ -96,14 +105,16 @@ def transform(file_path: str):
 
     # Save transformed DataFrame
     transformed_file = f"transformed_{file_name}"
-    if transformed_file.endswith(".csv"):
-        df.to_csv(transformed_file, index=False)
-    elif transformed_file.endswith((".xls", ".xlsx")):
-        df.to_excel(transformed_file, index=False)
+    transformed_file_path = os.path.join(TMP_ETL_DIR, transformed_file)
+
+    if transformed_file_path.endswith(".csv"):
+        df.to_csv(transformed_file_path, index=False)
+    elif transformed_file_path.endswith((".xls", ".xlsx")):
+        df.to_excel(transformed_file_path, index=False)
     else:
         raise ValueError(f"Unsupported file extension for saving: {transformed_file}")
 
-    logger.info(f"Transformed file saved to {transformed_file}")
+    logger.info(f"Transformed file saved to {transformed_file_path}")
     logger.info(df.head())
 
 
@@ -118,17 +129,21 @@ def load(file_path: str):
     """
 
     logger.info("Loading data in SQL database...")
-
+    # Insure transformed file exists
     file_name = os.path.basename(file_path)
-    extracted_file = f"extracted_{file_name}"
     transformed_file = f"transformed_{file_name}"
-    if not os.path.exists(transformed_file):
-        logger.error(f"Transformed file not found: {transformed_file}")
+    transformed_file_path = os.path.join(TMP_ETL_DIR, transformed_file)
+    if not os.path.exists(transformed_file_path):
+        logger.error(f"Transformed file not found: {transformed_file_path}")
         return
-    load_to_postgres(transformed_file)
+
+    # Load to Postgres
+    load_to_postgres(transformed_file_path)
 
     # Delete temporary files created after loading
-    for f in [extracted_file, transformed_file]:
+    extracted_file = f"extracted_{file_name}"
+    extracted_file_path = os.path.join(TMP_ETL_DIR, extracted_file)
+    for f in [extracted_file_path, transformed_file_path]:
         if os.path.exists(f):
             os.remove(f)
             logger.info(f"Deleted file: {f}")
