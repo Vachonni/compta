@@ -1,5 +1,6 @@
 """Settings for project prepro"""
 
+import os
 from prepro.config.schemas import AppEnvEnum
 
 from pydantic import Field
@@ -26,6 +27,9 @@ class Settings(BaseSettings):
     app_env: AppEnvEnum = Field(
         default=AppEnvEnum.DEV
     )  # Field necesary for pytest in Docker
+    root_dir: str = Field(
+        default=os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
+    )  # Root directory of the project
     sql_url: str
     blob_url: str
 
@@ -49,6 +53,7 @@ settings = Settings()  # type: ignore
 if __name__ == "__main__":
     print("Configuration:")
     print(f"Environment: {settings.app_env.value}")
+    print(f"Root Dir: {settings.root_dir}")
     print(f"Log Level: {settings.log_level}")
     print(f"SQL URL: {settings.sql_url}")
     print(f"Blob URL: {settings.blob_url}")
