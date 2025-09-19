@@ -1,7 +1,7 @@
 import shutil
 from pathlib import Path
 from fastapi import Depends, FastAPI, HTTPException, UploadFile, File, Form
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 
 from fastapi_mcp import FastApiMCP
 
@@ -124,6 +124,66 @@ async def upload_file(
     with save_path.open("wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
     return {"detail": "File uploaded successfully.", "path": str(save_path)}
+
+
+@app.get(
+    "/extract_file",
+    summary="Extract a file from the Database Blob",
+    description="""
+    Retrieve a file.
+
+    The `path` parameter MUST be absolute and ONLY these two forms are accepted:
+    1. The exact absolute path previously returned by /upload_file (i.e. any absolute path already inside the
+       current configured blob root directory).
+    2. An absolute path that starts with `/blob/...` (environment-agnostic). If the segment immediately after
+       `/blob/` is `dev` or `prod` it is ignored.
+
+    All other shapes (relative paths, absolute paths outside the blob root that do not start with `/blob/`) are rejected.
+    """,
+)
+async def extract_file(path: str):
+    blob_root = Path(database_settings.blob_path).resolve()
+    p = Path(path)
+    if not p.is_absolute():
+        raise HTTPException(status_code=400, detail="Path must be absolute.")
+
+    try:
+        # Case 1: already within blob root
+        rel = p.resolve().relative_to(blob_root)
+        requested_path = blob_root / rel
+    except Exception:
+        # Case 2: starts with /blob/
+        if p.parts[:2] == ("/", "blob"):
+            after = list(p.parts[2:])
+            if after and after[0] in {"dev", "prod"}:
+                after = after[1:]
+            requested_path = (blob_root / Path(*after)).resolve()
+            if not str(requested_path).startswith(str(blob_root)):
+                raise HTTPException(
+                    status_code=400, detail="Resolved path escapes blob root."
+                )
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="Path must either be inside the blob root or start with /blob/",
+            )
+
+    if not requested_path.exists() or not requested_path.is_file():
+        raise HTTPException(
+            status_code=404, detail=f"File not found at: {requested_path}"
+        )
+
+    ext = requested_path.suffix.lower().lstrip(".")
+    media_types = {
+        "pdf": "application/pdf",
+        "csv": "text/csv",
+        "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "xls": "application/vnd.ms-excel",
+    }
+    media_type = media_types.get(ext, "application/octet-stream")
+    return FileResponse(
+        path=requested_path, media_type=media_type, filename=requested_path.name
+    )
 
 
 # Integrate MCP server

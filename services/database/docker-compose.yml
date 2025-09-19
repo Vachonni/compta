@@ -9,4 +9,5 @@ services:
     volumes:
       - ${LOCAL_DATABASES_DIR}:${DOCKER_DATABASES_DIR}
     env_file:
-      - .env.dev
+      - .env
+      - .env.${APP_ENV}

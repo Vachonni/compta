@@ -445,3 +445,79 @@ class TestUploadFile:
                 # Verify directories were created
                 assert expected_dir.exists()
                 assert (expected_dir / "N_BNC.pdf").exists()
+
+
+class TestExtractFile:
+    def setup_method(self):
+        app.dependency_overrides = {}
+        self.client = TestClient(app)
+
+    def test_extract_file_success(self, tmp_path):
+        # Create a dummy file via upload_file to ensure consistent path construction
+        with patch("database_pkg.app.database_settings") as mock_settings:
+            mock_settings.blob_path = str(tmp_path)
+            pdf_content = b"%PDF-1.4 test"
+            files = {
+                "file": ("statement.pdf", io.BytesIO(pdf_content), "application/pdf")
+            }
+            data = {
+                "owner": "G",
+                "year": 2025,
+                "month": 9,
+                "bank": "BNP",
+                "overwrite": False,
+            }
+            upload_resp = self.client.post("/upload_file", files=files, data=data)
+            assert upload_resp.status_code == 200
+            path = upload_resp.json()["path"]
+
+            extract_resp = self.client.get("/extract_file", params={"path": path})
+            assert extract_resp.status_code == 200
+            assert extract_resp.content == pdf_content
+            assert extract_resp.headers["content-type"].startswith("application/pdf")
+
+    def test_extract_file_not_found(self, tmp_path):
+        with patch("database_pkg.app.database_settings") as mock_settings:
+            mock_settings.blob_path = str(tmp_path)
+            non_existent = tmp_path / "raw" / "2025" / "9" / "G_BNP.pdf"
+            resp = self.client.get("/extract_file", params={"path": str(non_existent)})
+            assert resp.status_code == 404
+            assert "File not found" in resp.json()["detail"]
+
+    def test_extract_file_outside_root(self, tmp_path):
+        with patch("database_pkg.app.database_settings") as mock_settings:
+            mock_settings.blob_path = str(tmp_path)
+            # Use parent directory to simulate outside path
+            outside = tmp_path.parent / "evil.pdf"
+            outside.write_text("malicious")
+            resp = self.client.get("/extract_file", params={"path": str(outside)})
+            assert resp.status_code == 400
+            assert (
+                "blob" in resp.json()["detail"] or "absolute" in resp.json()["detail"]
+            )
+
+    def test_extract_file_path_with_blob_root_absolute(self, tmp_path):
+        """Provide an absolute path starting with /blob/... and ensure it resolves."""
+        with patch("database_pkg.app.database_settings") as mock_settings:
+            mock_settings.blob_path = str(tmp_path)
+            pdf_content = b"%PDF-variant"
+            files = {
+                "file": ("statement.pdf", io.BytesIO(pdf_content), "application/pdf")
+            }
+            data = {
+                "owner": "N",
+                "year": 2025,
+                "month": 8,
+                "bank": "Revolut",
+                "overwrite": False,
+            }
+            upload_resp = self.client.post("/upload_file", files=files, data=data)
+            assert upload_resp.status_code == 200
+            abs_path = Path(upload_resp.json()["path"]).resolve()
+            blob_root = Path(mock_settings.blob_path)
+            rel_from_blob = abs_path.relative_to(blob_root)
+            # Synthesize an absolute /blob/... path
+            synthetic = Path("/blob") / "dev" / rel_from_blob  # environment segment dev
+            resp = self.client.get("/extract_file", params={"path": str(synthetic)})
+            assert resp.status_code == 200
+            assert resp.content == pdf_content

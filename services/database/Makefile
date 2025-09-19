@@ -29,17 +29,17 @@ pytest:
 	uv run pytest
 
 docker-build-dev: 
-	docker compose --env-file .env.dev build compa-data-app
+	APP_ENV=dev docker compose build compa-data-app
 docker-run-dev: 
-	docker compose --env-file .env.dev up --no-build compa-data-app
+	APP_ENV=dev docker compose up --no-build compa-data-app
 	# Note: This will not rebuild the image, use `docker-build-dev` first if
 docker-up-dev: 
-	docker compose --env-file .env.dev up --build
+	APP_ENV=dev docker compose up --build
 
 docker-run-staging: 
 	docker pull $(GITHUB_REGISTRY)/compta-data-app:staging
-	docker run --env-file .env.staging -p 8005:8000 -v $(LOCAL_DATABASES_DIR):$(DOCKER_DATABASES_DIR) $(GITHUB_REGISTRY)/compta-data-app:staging
+	APP_ENV=staging docker run -p 8005:8000 -v $(LOCAL_DATABASES_DIR):$(DOCKER_DATABASES_DIR) $(GITHUB_REGISTRY)/compta-data-app:staging
 
 docker-run-prod: 
 	docker pull $(GITHUB_REGISTRY)/compta-data-app:prod
-	docker run --env-file .env.prod -p 8009:8000 -v $(LOCAL_DATABASES_DIR):$(DOCKER_DATABASES_DIR) $(GITHUB_REGISTRY)/compta-data-app:prod
+	APP_ENV=prod docker run -p 8009:8000 -v $(LOCAL_DATABASES_DIR):$(DOCKER_DATABASES_DIR) $(GITHUB_REGISTRY)/compta-data-app:prod

@@ -1,0 +1,15 @@
+services:
+  prepro:
+    image: prepro:dev
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # ports:
+    #   - "8001:8000"
+    # volumes:
+    #   - prepro_root:/app/src/prepro
+    env_file:
+      - .env.dev
+
+# volumes:
+#   prepro_root:
